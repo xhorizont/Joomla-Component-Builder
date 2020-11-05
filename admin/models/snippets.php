@@ -1,33 +1,18 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 16 of this MVC
-	@build			20th October, 2016
-	@created		19th May, 2015
-	@package		Component Builder
-	@subpackage		snippets.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import the Joomla modellist library
-jimport('joomla.application.component.modellist');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Snippets Model
@@ -46,12 +31,127 @@ class ComponentbuilderModelSnippets extends JModelList
 				'a.modified_by','modified_by',
 				'a.name','name',
 				'a.url','url',
-				'a.type','type',
-				'a.heading','heading'
+				'g.name',
+				'a.heading','heading',
+				'h.name'
 			);
 		}
 
 		parent::__construct($config);
+	}
+
+	public $user;
+	public $zipPath;
+
+	/**
+	*	Method to build the export package
+	*
+	*	@return bool on success.
+	*/
+	public function shareSnippets($pks)
+	{
+		// setup the query
+		if (ComponentbuilderHelper::checkArray($pks))
+		{
+			// Get the user object.
+			if (!ComponentbuilderHelper::checkObject($this->user))
+			{
+				$this->user = JFactory::getUser();
+			}
+			// Create a new query object.
+			if (!ComponentbuilderHelper::checkObject($this->_db))
+			{
+				$this->_db = JFactory::getDBO();
+			}
+			$query = $this->_db->getQuery(true);
+
+			// Select some fields
+			$query->select($this->_db->quoteName(
+				array('a.name','a.heading','a.description','a.usage','a.snippet','a.url','b.name','c.name','a.created','a.modified','a.contributor_company','a.contributor_name','a.contributor_email','a.contributor_website'),
+				array('name','heading','description','usage','snippet','url','type','library','created','modified','contributor_company','contributor_name','contributor_email','contributor_website')
+			));
+			
+			// From the componentbuilder_snippet table
+			$query->from($this->_db->quoteName('#__componentbuilder_snippet', 'a'));
+			// From the componentbuilder_snippet_type table.
+			$query->join('LEFT', $this->_db->quoteName('#__componentbuilder_snippet_type', 'b') . ' ON (' . $this->_db->quoteName('a.type') . ' = ' . $this->_db->quoteName('b.id') . ')');
+			// From the componentbuilder_library table.
+			$query->join('LEFT', $this->_db->quoteName('#__componentbuilder_library', 'c') . ' ON (' . $this->_db->quoteName('a.library') . ' = ' . $this->_db->quoteName('c.id') . ')');
+			$query->where('a.id IN (' . implode(',',$pks) . ')');
+			
+			// Implement View Level Access
+			if (!$this->user->authorise('core.options', 'com_componentbuilder'))
+			{
+				$groups = implode(',', $this->user->getAuthorisedViewLevels());
+				$query->where('a.access IN (' . $groups . ')');
+			}
+
+			// Order the results by ordering
+			$query->order('a.ordering  ASC');
+
+			// Load the items
+			$this->_db->setQuery($query);
+			$this->_db->execute();
+			if ($this->_db->getNumRows())
+			{
+				// load the items from db
+				$items = $this->_db->loadObjectList();
+				// check if we have items
+				if (ComponentbuilderHelper::checkArray($items))
+				{
+					// get the shared paths
+					$this->fullPath = rtrim(ComponentbuilderHelper::getFolderPath('path', 'sharepath', JFactory::getConfig()->get('tmp_path')), '/') . '/snippets';
+					// remove old folder with the same name
+					if (JFolder::exists($this->fullPath))
+					{
+						// remove if old folder is found
+						ComponentbuilderHelper::removeFolder($this->fullPath);
+					}
+					// create the full path
+					JFolder::create($this->fullPath);
+					// set zip path
+					$this->zipPath = $this->fullPath .'.zip';
+					// remove old zip files with the same name
+					if (JFile::exists($this->zipPath))
+					{
+						// remove file if found
+						JFile::delete($this->zipPath);
+					}
+					// prep the item
+					foreach($items as $item)
+					{
+						// just unlock the snippet
+						$item->snippet = base64_decode($item->snippet);
+						// build filename
+						$fileName = ComponentbuilderHelper::safeString($item->library . ' - (' . $item->type . ') ' . $item->name, 'filename', '', false) . '.json';
+						// if the snippet has its own contributor details set, then do not change
+						if (!strlen($item->contributor_company) || !strlen($item->contributor_name) || !strlen($item->contributor_email) || !strlen($item->contributor_website))
+						{
+							// load the correct contributor details to each snippet (this is very slow)
+							$_contributor = ComponentbuilderHelper::getContributorDetails($fileName);
+							$item->contributor_company = $_contributor['contributor_company'];
+							$item->contributor_name = $_contributor['contributor_name'];
+							$item->contributor_email = $_contributor['contributor_email'];
+							$item->contributor_website = $_contributor['contributor_website'];
+						}
+						// now store the snippet info
+						ComponentbuilderHelper::writeFile($this->fullPath . '/' . $fileName, json_encode($item, JSON_PRETTY_PRINT));
+					}
+					// zip the folder
+					if (!ComponentbuilderHelper::zip($this->fullPath, $this->zipPath))
+					{
+						return false;
+					}
+					// remove the folder
+					if (!ComponentbuilderHelper::removeFolder($this->fullPath))
+					{
+						return false;
+					}
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -79,6 +179,9 @@ class ComponentbuilderModelSnippets extends JModelList
 
 		$heading = $this->getUserStateFromRequest($this->context . '.filter.heading', 'filter_heading');
 		$this->setState('filter.heading', $heading);
+
+		$library = $this->getUserStateFromRequest($this->context . '.filter.library', 'filter_library');
+		$this->setState('filter.library', $library);
         
 		$sorting = $this->getUserStateFromRequest($this->context . '.filter.sorting', 'filter_sorting', 0, 'int');
 		$this->setState('filter.sorting', $sorting);
@@ -108,20 +211,24 @@ class ComponentbuilderModelSnippets extends JModelList
 	 * @return  mixed  An array of data items on success, false on failure.
 	 */
 	public function getItems()
-	{ 
+	{
 		// check in items
 		$this->checkInNow();
 
 		// load parent items
 		$items = parent::getItems();
 
-		// set values to display correctly.
+		// Set values to display correctly.
 		if (ComponentbuilderHelper::checkArray($items))
 		{
-			// get user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			foreach ($items as $nr => &$item)
 			{
+				// Remove items the user can't access.
 				$access = ($user->authorise('snippet.access', 'com_componentbuilder.snippet.' . (int) $item->id) && $user->authorise('snippet.access', 'com_componentbuilder'));
 				if (!$access)
 				{
@@ -130,48 +237,10 @@ class ComponentbuilderModelSnippets extends JModelList
 				}
 
 			}
-		} 
-
-		// set selection value to a translatable value
-		if (ComponentbuilderHelper::checkArray($items))
-		{
-			foreach ($items as $nr => &$item)
-			{
-				// convert type
-				$item->type = $this->selectionTranslation($item->type, 'type');
-			}
 		}
- 
         
 		// return items
 		return $items;
-	}
-
-	/**
-	* Method to convert selection values to translatable string.
-	*
-	* @return translatable string
-	*/
-	public function selectionTranslation($value,$name)
-	{
-		// Array of type language strings
-		if ($name === 'type')
-		{
-			$typeArray = array(
-				1 => 'COM_COMPONENTBUILDER_SNIPPET_LAYOUT',
-				2 => 'COM_COMPONENTBUILDER_SNIPPET_NAVIGATIONS',
-				3 => 'COM_COMPONENTBUILDER_SNIPPET_ELEMENTS',
-				4 => 'COM_COMPONENTBUILDER_SNIPPET_COMMON',
-				5 => 'COM_COMPONENTBUILDER_SNIPPET_JAVASCRIPT',
-				6 => 'COM_COMPONENTBUILDER_SNIPPET_CHARTS'
-			);
-			// Now check if value is found in this array
-			if (isset($typeArray[$value]) && ComponentbuilderHelper::checkString($typeArray[$value]))
-			{
-				return $typeArray[$value];
-			}
-		}
-		return $value;
 	}
 	
 	/**
@@ -192,6 +261,14 @@ class ComponentbuilderModelSnippets extends JModelList
 
 		// From the componentbuilder_item table
 		$query->from($db->quoteName('#__componentbuilder_snippet', 'a'));
+
+		// From the componentbuilder_snippet_type table.
+		$query->select($db->quoteName('g.name','type_name'));
+		$query->join('LEFT', $db->quoteName('#__componentbuilder_snippet_type', 'g') . ' ON (' . $db->quoteName('a.type') . ' = ' . $db->quoteName('g.id') . ')');
+
+		// From the componentbuilder_library table.
+		$query->select($db->quoteName('h.name','library_name'));
+		$query->join('LEFT', $db->quoteName('#__componentbuilder_library', 'h') . ' ON (' . $db->quoteName('a.library') . ' = ' . $db->quoteName('h.id') . ')');
 
 		// Filter by published state
 		$published = $this->getState('filter.published');
@@ -229,19 +306,24 @@ class ComponentbuilderModelSnippets extends JModelList
 			else
 			{
 				$search = $db->quote('%' . $db->escape($search) . '%');
-				$query->where('(a.name LIKE '.$search.' OR a.url LIKE '.$search.' OR a.type LIKE '.$search.' OR a.heading LIKE '.$search.' OR a.description LIKE '.$search.')');
+				$query->where('(a.name LIKE '.$search.' OR a.url LIKE '.$search.' OR a.type LIKE '.$search.' OR g.name LIKE '.$search.' OR a.heading LIKE '.$search.' OR a.library LIKE '.$search.' OR h.name LIKE '.$search.' OR a.description LIKE '.$search.')');
 			}
 		}
 
-		// Filter by Type.
+		// Filter by type.
 		if ($type = $this->getState('filter.type'))
 		{
 			$query->where('a.type = ' . $db->quote($db->escape($type)));
 		}
+		// Filter by library.
+		if ($library = $this->getState('filter.library'))
+		{
+			$query->where('a.library = ' . $db->quote($db->escape($library)));
+		}
 
 		// Add the list ordering clause.
 		$orderCol = $this->state->get('list.ordering', 'a.id');
-		$orderDirn = $this->state->get('list.direction', 'asc');	
+		$orderDirn = $this->state->get('list.direction', 'desc');
 		if ($orderCol != '')
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
@@ -251,19 +333,25 @@ class ComponentbuilderModelSnippets extends JModelList
 	}
 
 	/**
-	* Method to get list export data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getExportData($pks)
+	 * Method to get list export data.
+	 *
+	 * @param   array  $pks  The ids of the items to get
+	 * @param   JUser  $user  The user making the request
+	 *
+	 * @return mixed  An array of data items on success, false on failure.
+	 */
+	public function getExportData($pks, $user = null)
 	{
 		// setup the query
-		if (ComponentbuilderHelper::checkArray($pks))
+		if (($pks_size = ComponentbuilderHelper::checkArray($pks)) !== false || 'bulk' === $pks)
 		{
-			// Set a value to know this is exporting method.
+			// Set a value to know this is export method. (USE IN CUSTOM CODE TO ALTER OUTCOME)
 			$_export = true;
-			// Get the user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			// Create a new query object.
 			$db = JFactory::getDBO();
 			$query = $db->getQuery(true);
@@ -273,7 +361,24 @@ class ComponentbuilderModelSnippets extends JModelList
 
 			// From the componentbuilder_snippet table
 			$query->from($db->quoteName('#__componentbuilder_snippet', 'a'));
-			$query->where('a.id IN (' . implode(',',$pks) . ')');
+			// The bulk export path
+			if ('bulk' === $pks)
+			{
+				$query->where('a.id > 0');
+			}
+			// A large array of ID's will not work out well
+			elseif ($pks_size > 500)
+			{
+				// Use lowest ID
+				$query->where('a.id >= ' . (int) min($pks));
+				// Use highest ID
+				$query->where('a.id <= ' . (int) max($pks));
+			}
+			// The normal default path
+			else
+			{
+				$query->where('a.id IN (' . implode(',',$pks) . ')');
+			}
 			// Implement View Level Access
 			if (!$user->authorise('core.options', 'com_componentbuilder'))
 			{
@@ -282,7 +387,7 @@ class ComponentbuilderModelSnippets extends JModelList
 			}
 
 			// Order the results by ordering
-			$query->order('a.ordering  ASC');
+			$query->order('a.id desc');
 
 			// Load the items
 			$db->setQuery($query);
@@ -291,13 +396,12 @@ class ComponentbuilderModelSnippets extends JModelList
 			{
 				$items = $db->loadObjectList();
 
-				// set values to display correctly.
+				// Set values to display correctly.
 				if (ComponentbuilderHelper::checkArray($items))
 				{
-					// get user object.
-					$user = JFactory::getUser();
 					foreach ($items as $nr => &$item)
 					{
+						// Remove items the user can't access.
 						$access = ($user->authorise('snippet.access', 'com_componentbuilder.snippet.' . (int) $item->id) && $user->authorise('snippet.access', 'com_componentbuilder'));
 						if (!$access)
 						{
@@ -350,7 +454,7 @@ class ComponentbuilderModelSnippets extends JModelList
 			return $headers;
 		}
 		return false;
-	} 
+	}
 	
 	/**
 	 * Method to get a store id based on model configuration state.
@@ -371,21 +475,22 @@ class ComponentbuilderModelSnippets extends JModelList
 		$id .= ':' . $this->getState('filter.url');
 		$id .= ':' . $this->getState('filter.type');
 		$id .= ':' . $this->getState('filter.heading');
+		$id .= ':' . $this->getState('filter.library');
 
 		return parent::getStoreId($id);
 	}
 
 	/**
-	* Build an SQL query to checkin all items left checked out longer then a set time.
-	*
-	* @return  a bool
-	*
-	*/
+	 * Build an SQL query to checkin all items left checked out longer then a set time.
+	 *
+	 * @return  a bool
+	 *
+	 */
 	protected function checkInNow()
 	{
 		// Get set check in time
 		$time = JComponentHelper::getParams('com_componentbuilder')->get('check_in');
-		
+
 		if ($time)
 		{
 

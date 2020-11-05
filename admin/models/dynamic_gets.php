@@ -1,33 +1,18 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 81 of this MVC
-	@build			15th January, 2017
-	@created		21st May, 2015
-	@package		Component Builder
-	@subpackage		dynamic_gets.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import the Joomla modellist library
-jimport('joomla.application.component.modellist');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Dynamic_gets Model
@@ -104,20 +89,24 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 	 * @return  mixed  An array of data items on success, false on failure.
 	 */
 	public function getItems()
-	{ 
+	{
 		// check in items
 		$this->checkInNow();
 
 		// load parent items
 		$items = parent::getItems();
 
-		// set values to display correctly.
+		// Set values to display correctly.
 		if (ComponentbuilderHelper::checkArray($items))
 		{
-			// get user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			foreach ($items as $nr => &$item)
 			{
+				// Remove items the user can't access.
 				$access = ($user->authorise('dynamic_get.access', 'com_componentbuilder.dynamic_get.' . (int) $item->id) && $user->authorise('dynamic_get.access', 'com_componentbuilder'));
 				if (!$access)
 				{
@@ -126,7 +115,7 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 				}
 
 			}
-		} 
+		}
 
 		// set selection value to a translatable value
 		if (ComponentbuilderHelper::checkArray($items))
@@ -139,17 +128,17 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 				$item->gettype = $this->selectionTranslation($item->gettype, 'gettype');
 			}
 		}
- 
+
         
 		// return items
 		return $items;
 	}
 
 	/**
-	* Method to convert selection values to translatable string.
-	*
-	* @return translatable string
-	*/
+	 * Method to convert selection values to translatable string.
+	 *
+	 * @return translatable string
+	 */
 	public function selectionTranslation($value,$name)
 	{
 		// Array of main_source language strings
@@ -257,7 +246,7 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 
 		// Add the list ordering clause.
 		$orderCol = $this->state->get('list.ordering', 'a.id');
-		$orderDirn = $this->state->get('list.direction', 'asc');	
+		$orderDirn = $this->state->get('list.direction', 'desc');
 		if ($orderCol != '')
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
@@ -267,19 +256,25 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 	}
 
 	/**
-	* Method to get list export data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getExportData($pks)
+	 * Method to get list export data.
+	 *
+	 * @param   array  $pks  The ids of the items to get
+	 * @param   JUser  $user  The user making the request
+	 *
+	 * @return mixed  An array of data items on success, false on failure.
+	 */
+	public function getExportData($pks, $user = null)
 	{
 		// setup the query
-		if (ComponentbuilderHelper::checkArray($pks))
+		if (($pks_size = ComponentbuilderHelper::checkArray($pks)) !== false || 'bulk' === $pks)
 		{
-			// Set a value to know this is exporting method.
+			// Set a value to know this is export method. (USE IN CUSTOM CODE TO ALTER OUTCOME)
 			$_export = true;
-			// Get the user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			// Create a new query object.
 			$db = JFactory::getDBO();
 			$query = $db->getQuery(true);
@@ -289,7 +284,24 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 
 			// From the componentbuilder_dynamic_get table
 			$query->from($db->quoteName('#__componentbuilder_dynamic_get', 'a'));
-			$query->where('a.id IN (' . implode(',',$pks) . ')');
+			// The bulk export path
+			if ('bulk' === $pks)
+			{
+				$query->where('a.id > 0');
+			}
+			// A large array of ID's will not work out well
+			elseif ($pks_size > 500)
+			{
+				// Use lowest ID
+				$query->where('a.id >= ' . (int) min($pks));
+				// Use highest ID
+				$query->where('a.id <= ' . (int) max($pks));
+			}
+			// The normal default path
+			else
+			{
+				$query->where('a.id IN (' . implode(',',$pks) . ')');
+			}
 			// Implement View Level Access
 			if (!$user->authorise('core.options', 'com_componentbuilder'))
 			{
@@ -298,7 +310,7 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 			}
 
 			// Order the results by ordering
-			$query->order('a.ordering  ASC');
+			$query->order('a.id desc');
 
 			// Load the items
 			$db->setQuery($query);
@@ -307,13 +319,12 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 			{
 				$items = $db->loadObjectList();
 
-				// set values to display correctly.
+				// Set values to display correctly.
 				if (ComponentbuilderHelper::checkArray($items))
 				{
-					// get user object.
-					$user = JFactory::getUser();
 					foreach ($items as $nr => &$item)
 					{
+						// Remove items the user can't access.
 						$access = ($user->authorise('dynamic_get.access', 'com_componentbuilder.dynamic_get.' . (int) $item->id) && $user->authorise('dynamic_get.access', 'com_componentbuilder'));
 						if (!$access)
 						{
@@ -321,20 +332,22 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 							continue;
 						}
 
-						// decode php_after_getitem
-						$item->php_after_getitem = base64_decode($item->php_after_getitem);
+						// decode php_router_parse
+						$item->php_router_parse = base64_decode($item->php_router_parse);
 						// decode php_before_getitems
 						$item->php_before_getitems = base64_decode($item->php_before_getitems);
-						// decode php_before_getitem
-						$item->php_before_getitem = base64_decode($item->php_before_getitem);
-						// decode php_getlistquery
-						$item->php_getlistquery = base64_decode($item->php_getlistquery);
 						// decode php_after_getitems
 						$item->php_after_getitems = base64_decode($item->php_after_getitems);
-						// decode php_calculation
-						$item->php_calculation = base64_decode($item->php_calculation);
+						// decode php_after_getitem
+						$item->php_after_getitem = base64_decode($item->php_after_getitem);
+						// decode php_getlistquery
+						$item->php_getlistquery = base64_decode($item->php_getlistquery);
 						// decode php_custom_get
 						$item->php_custom_get = base64_decode($item->php_custom_get);
+						// decode php_calculation
+						$item->php_calculation = base64_decode($item->php_calculation);
+						// decode php_before_getitem
+						$item->php_before_getitem = base64_decode($item->php_before_getitem);
 						// unset the values we don't want exported.
 						unset($item->asset_id);
 						unset($item->checked_out);
@@ -378,7 +391,7 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 			return $headers;
 		}
 		return false;
-	} 
+	}
 	
 	/**
 	 * Method to get a store id based on model configuration state.
@@ -403,16 +416,16 @@ class ComponentbuilderModelDynamic_gets extends JModelList
 	}
 
 	/**
-	* Build an SQL query to checkin all items left checked out longer then a set time.
-	*
-	* @return  a bool
-	*
-	*/
+	 * Build an SQL query to checkin all items left checked out longer then a set time.
+	 *
+	 * @return  a bool
+	 *
+	 */
 	protected function checkInNow()
 	{
 		// Get set check in time
 		$time = JComponentHelper::getParams('com_componentbuilder')->get('check_in');
-		
+
 		if ($time)
 		{
 

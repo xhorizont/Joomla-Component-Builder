@@ -1,47 +1,219 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 97 of this MVC
-	@build			3rd March, 2017
-	@created		6th May, 2015
-	@package		Component Builder
-	@subpackage		joomla_component.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
 use Joomla\Registry\Registry;
-
-// import Joomla modelform library
-jimport('joomla.application.component.modeladmin');
+use Joomla\String\StringHelper;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Componentbuilder Joomla_component Model
  */
 class ComponentbuilderModelJoomla_component extends JModelAdmin
-{    
+{
+	/**
+	 * The tab layout fields array.
+	 *
+	 * @var      array
+	 */
+	protected $tabLayoutFields = array(
+		'details' => array(
+			'left' => array(
+				'name',
+				'name_code',
+				'component_version',
+				'debug_linenr',
+				'add_placeholders',
+				'remove_line_breaks',
+				'mvc_versiondate',
+				'note_version_options_one',
+				'note_version_options_two',
+				'note_version_options_three',
+				'short_description',
+				'description'
+			),
+			'right' => array(
+				'companyname',
+				'author',
+				'email',
+				'website',
+				'add_license',
+				'license_type',
+				'note_whmcs_lisencing_note',
+				'whmcs_key',
+				'whmcs_url',
+				'whmcs_buy_link',
+				'license',
+				'bom',
+				'image',
+				'copyright'
+			),
+			'above' => array(
+				'system_name'
+			),
+			'under' => array(
+				'not_required'
+			)
+		),
+		'libs_helpers' => array(
+			'fullwidth' => array(
+				'creatuserhelper',
+				'adduikit',
+				'addfootable',
+				'add_email_helper',
+				'add_php_helper_both',
+				'php_helper_both',
+				'add_php_helper_admin',
+				'php_helper_admin',
+				'add_admin_event',
+				'php_admin_event',
+				'add_php_helper_site',
+				'php_helper_site',
+				'add_site_event',
+				'php_site_event',
+				'add_javascript',
+				'javascript',
+				'add_css_admin',
+				'css_admin',
+				'add_css_site',
+				'css_site'
+			)
+		),
+		'dynamic_integration' => array(
+			'left' => array(
+				'add_update_server',
+				'update_server_url',
+				'update_server_target',
+				'note_update_server_note_ftp',
+				'note_update_server_note_zip',
+				'note_update_server_note_other',
+				'update_server',
+				'add_sales_server',
+				'sales_server'
+			),
+			'right' => array(
+				'translation_tool',
+				'note_crowdin',
+				'crowdin_project_identifier',
+				'crowdin_project_api_key',
+				'crowdin_username',
+				'crowdin_account_api_key'
+			)
+		),
+		'mysql' => array(
+			'fullwidth' => array(
+				'add_sql',
+				'sql',
+				'add_sql_uninstall',
+				'sql_uninstall'
+			)
+		),
+		'dash_install' => array(
+			'left' => array(
+				'dashboard_type'
+			),
+			'right' => array(
+				'note_dynamic_dashboard',
+				'dashboard',
+				'note_botton_component_dashboard'
+			),
+			'fullwidth' => array(
+				'add_php_preflight_install',
+				'php_preflight_install',
+				'add_php_preflight_update',
+				'php_preflight_update',
+				'add_php_postflight_install',
+				'php_postflight_install',
+				'add_php_postflight_update',
+				'php_postflight_update',
+				'add_php_method_uninstall',
+				'php_method_uninstall'
+			)
+		),
+		'readme' => array(
+			'left' => array(
+				'addreadme',
+				'readme'
+			),
+			'right' => array(
+				'note_readme'
+			)
+		),
+		'dynamic_build_beta' => array(
+			'fullwidth' => array(
+				'note_buildcomp_dynamic_mysql',
+				'buildcomp',
+				'buildcompsql'
+			)
+		),
+		'settings' => array(
+			'left' => array(
+				'note_moved_views',
+				'spacer_hr_one',
+				'note_mysql_tweak_options',
+				'spacer_hr_two',
+				'note_add_custom_menus',
+				'spacer_hr_three',
+				'note_add_config'
+			),
+			'right' => array(
+				'note_component_files_folders',
+				'spacer_hr_four',
+				'add_menu_prefix',
+				'menu_prefix',
+				'spacer_hr_five',
+				'to_ignore_note',
+				'toignore',
+				'spacer_hr_six',
+				'jcb_export_package_note',
+				'export_key',
+				'joomla_source_link',
+				'export_buy_link'
+			),
+			'fullwidth' => array(
+				'spacer_hr_seven',
+				'note_on_contributors',
+				'addcontributors',
+				'emptycontributors',
+				'number'
+			)
+		),
+		'admin_views' => array(
+			'fullwidth' => array(
+				'note_on_admin_views',
+				'note_display_component_admin_views'
+			)
+		),
+		'site_views' => array(
+			'fullwidth' => array(
+				'note_on_site_views',
+				'note_display_component_site_views'
+			)
+		),
+		'custom_admin_views' => array(
+			'fullwidth' => array(
+				'note_on_custom_admin_views',
+				'note_display_component_custom_admin_views'
+			)
+		)
+	);
+
 	/**
 	 * @var        string    The prefix to use with controller messages.
 	 * @since   1.6
 	 */
 	protected $text_prefix = 'COM_COMPONENTBUILDER';
-    
+
 	/**
 	 * The type alias for this content type.
 	 *
@@ -63,8 +235,80 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	 */
 	public function getTable($type = 'joomla_component', $prefix = 'ComponentbuilderTable', $config = array())
 	{
+		// add table path for when model gets used from other component
+		$this->addTablePath(JPATH_ADMINISTRATOR . '/components/com_componentbuilder/tables');
+		// get instance of the table
 		return JTable::getInstance($type, $prefix, $config);
 	}
+
+
+	/**
+	 * get VDM internal session key
+	 *
+	 * @return  string  the session key
+	 *
+	 */
+	public function getVDM()
+	{
+		if (!isset($this->vastDevMod))
+		{
+			$_id = 0; // new item probably (since it was not set in the getItem method)
+
+			if (empty($_id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $_id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('joomla_component__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'joomla_component__'.$id);
+				ComponentbuilderHelper::set('joomla_component__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+		}
+		return $this->vastDevMod;
+	}
+
+	/**
+	 * The assistant form fields
+	 *
+	 * @var      array
+	 */
+	public $assistantForm = array(
+		'left' => array(
+			'name',
+			'short_description',
+			'guid',
+			'copyright'
+		),
+		'right' => array( 
+			'name_code',
+			'license',
+			'bom',
+			'image'
+		)
+	);
+
     
 	/**
 	 * Method to get a single record.
@@ -79,7 +323,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	{
 		if ($item = parent::getItem($pk))
 		{
-			if (!empty($item->params))
+			if (!empty($item->params) && !is_array($item->params))
 			{
 				// Convert the params field to an array.
 				$registry = new Registry;
@@ -95,58 +339,16 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				$item->metadata = $registry->toArray();
 			}
 
-			if (!empty($item->readme))
-			{
-				// base64 Decode readme.
-				$item->readme = base64_decode($item->readme);
-			}
-
-			if (!empty($item->php_postflight_update))
-			{
-				// base64 Decode php_postflight_update.
-				$item->php_postflight_update = base64_decode($item->php_postflight_update);
-			}
-
 			if (!empty($item->buildcompsql))
 			{
 				// base64 Decode buildcompsql.
 				$item->buildcompsql = base64_decode($item->buildcompsql);
 			}
 
-			if (!empty($item->php_preflight_update))
-			{
-				// base64 Decode php_preflight_update.
-				$item->php_preflight_update = base64_decode($item->php_preflight_update);
-			}
-
 			if (!empty($item->php_helper_both))
 			{
 				// base64 Decode php_helper_both.
 				$item->php_helper_both = base64_decode($item->php_helper_both);
-			}
-
-			if (!empty($item->php_postflight_install))
-			{
-				// base64 Decode php_postflight_install.
-				$item->php_postflight_install = base64_decode($item->php_postflight_install);
-			}
-
-			if (!empty($item->php_method_uninstall))
-			{
-				// base64 Decode php_method_uninstall.
-				$item->php_method_uninstall = base64_decode($item->php_method_uninstall);
-			}
-
-			if (!empty($item->php_preflight_install))
-			{
-				// base64 Decode php_preflight_install.
-				$item->php_preflight_install = base64_decode($item->php_preflight_install);
-			}
-
-			if (!empty($item->sql))
-			{
-				// base64 Decode sql.
-				$item->sql = base64_decode($item->sql);
 			}
 
 			if (!empty($item->php_helper_admin))
@@ -173,39 +375,177 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				$item->php_site_event = base64_decode($item->php_site_event);
 			}
 
-			if (!empty($item->css))
+			if (!empty($item->javascript))
 			{
-				// base64 Decode css.
-				$item->css = base64_decode($item->css);
+				// base64 Decode javascript.
+				$item->javascript = base64_decode($item->javascript);
 			}
 
-			if (!empty($item->php_dashboard_methods))
+			if (!empty($item->css_admin))
 			{
-				// base64 Decode php_dashboard_methods.
-				$item->php_dashboard_methods = base64_decode($item->php_dashboard_methods);
+				// base64 Decode css_admin.
+				$item->css_admin = base64_decode($item->css_admin);
 			}
 
-			// Get the basic encription.
+			if (!empty($item->css_site))
+			{
+				// base64 Decode css_site.
+				$item->css_site = base64_decode($item->css_site);
+			}
+
+			if (!empty($item->php_preflight_install))
+			{
+				// base64 Decode php_preflight_install.
+				$item->php_preflight_install = base64_decode($item->php_preflight_install);
+			}
+
+			if (!empty($item->php_preflight_update))
+			{
+				// base64 Decode php_preflight_update.
+				$item->php_preflight_update = base64_decode($item->php_preflight_update);
+			}
+
+			if (!empty($item->php_postflight_install))
+			{
+				// base64 Decode php_postflight_install.
+				$item->php_postflight_install = base64_decode($item->php_postflight_install);
+			}
+
+			if (!empty($item->php_postflight_update))
+			{
+				// base64 Decode php_postflight_update.
+				$item->php_postflight_update = base64_decode($item->php_postflight_update);
+			}
+
+			if (!empty($item->php_method_uninstall))
+			{
+				// base64 Decode php_method_uninstall.
+				$item->php_method_uninstall = base64_decode($item->php_method_uninstall);
+			}
+
+			if (!empty($item->sql))
+			{
+				// base64 Decode sql.
+				$item->sql = base64_decode($item->sql);
+			}
+
+			if (!empty($item->sql_uninstall))
+			{
+				// base64 Decode sql_uninstall.
+				$item->sql_uninstall = base64_decode($item->sql_uninstall);
+			}
+
+			if (!empty($item->readme))
+			{
+				// base64 Decode readme.
+				$item->readme = base64_decode($item->readme);
+			}
+
+			// Get the basic encryption.
 			$basickey = ComponentbuilderHelper::getCryptKey('basic');
-			// Get the encription object.
-			$basic = new FOFEncryptAes($basickey, 128);
+			// Get the encryption object.
+			$basic = new FOFEncryptAes($basickey);
 
-			if (!empty($item->update_server_ftp) && $basickey && !is_numeric($item->update_server_ftp) && $item->update_server_ftp === base64_encode(base64_decode($item->update_server_ftp, true)))
+			if (!empty($item->crowdin_username) && $basickey && !is_numeric($item->crowdin_username) && $item->crowdin_username === base64_encode(base64_decode($item->crowdin_username, true)))
 			{
-				// basic decript data update_server_ftp.
-				$item->update_server_ftp = rtrim($basic->decryptString($item->update_server_ftp), "\0");
-			}
-
-			if (!empty($item->sales_server_ftp) && $basickey && !is_numeric($item->sales_server_ftp) && $item->sales_server_ftp === base64_encode(base64_decode($item->sales_server_ftp, true)))
-			{
-				// basic decript data sales_server_ftp.
-				$item->sales_server_ftp = rtrim($basic->decryptString($item->sales_server_ftp), "\0");
+				// basic decrypt data crowdin_username.
+				$item->crowdin_username = rtrim($basic->decryptString($item->crowdin_username), "\0");
 			}
 
 			if (!empty($item->whmcs_key) && $basickey && !is_numeric($item->whmcs_key) && $item->whmcs_key === base64_encode(base64_decode($item->whmcs_key, true)))
 			{
-				// basic decript data whmcs_key.
+				// basic decrypt data whmcs_key.
 				$item->whmcs_key = rtrim($basic->decryptString($item->whmcs_key), "\0");
+			}
+
+			if (!empty($item->export_key) && $basickey && !is_numeric($item->export_key) && $item->export_key === base64_encode(base64_decode($item->export_key, true)))
+			{
+				// basic decrypt data export_key.
+				$item->export_key = rtrim($basic->decryptString($item->export_key), "\0");
+			}
+
+			if (!empty($item->crowdin_project_api_key) && $basickey && !is_numeric($item->crowdin_project_api_key) && $item->crowdin_project_api_key === base64_encode(base64_decode($item->crowdin_project_api_key, true)))
+			{
+				// basic decrypt data crowdin_project_api_key.
+				$item->crowdin_project_api_key = rtrim($basic->decryptString($item->crowdin_project_api_key), "\0");
+			}
+
+			if (!empty($item->crowdin_account_api_key) && $basickey && !is_numeric($item->crowdin_account_api_key) && $item->crowdin_account_api_key === base64_encode(base64_decode($item->crowdin_account_api_key, true)))
+			{
+				// basic decrypt data crowdin_account_api_key.
+				$item->crowdin_account_api_key = rtrim($basic->decryptString($item->crowdin_account_api_key), "\0");
+			}
+
+			if (!empty($item->addcontributors))
+			{
+				// Convert the addcontributors field to an array.
+				$addcontributors = new Registry;
+				$addcontributors->loadString($item->addcontributors);
+				$item->addcontributors = $addcontributors->toArray();
+			}
+
+
+			if (empty($item->id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $item->id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('joomla_component__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'joomla_component__'.$id);
+				ComponentbuilderHelper::set('joomla_component__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+
+			// update the fields
+			$objectUpdate = new stdClass();
+			$objectUpdate->id = (int) $item->id;
+			// repeatable values to check
+			$arrayChecker = array(
+				'addcontributors' => 'name'
+			);
+			foreach ($arrayChecker as $_value => $checker)
+			{
+				// check what type of array we have here (should be subform... but just in case)
+				// This could happen due to huge data sets
+				if (isset($item->{$_value}) && isset($item->{$_value}[$checker]))
+				{
+					$bucket = array();
+					foreach($item->{$_value} as $option => $values)
+					{
+						foreach($values as $nr => $value)
+						{
+							$bucket[$_value.$nr][$option] = $value;
+						}
+					}
+					$item->{$_value} = $bucket;
+					$objectUpdate->{$_value} = json_encode($bucket, JSON_FORCE_OBJECT);
+				}
+			}
+			// be sure to update the table if we found repeatable fields that are still not converted
+			if (count((array) $objectUpdate) > 1)
+			{
+				$this->_db->updateObject('#__componentbuilder_joomla_component', $objectUpdate, 'id');
 			}
 			
 			if (!empty($item->id))
@@ -214,311 +554,42 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				$item->tags->getTagIds($item->id, 'com_componentbuilder.joomla_component');
 			}
 		}
-		$this->idvvvv = $item->addadmin_views;
-		$this->idvvvw = $item->addcustom_admin_views;
-		$this->idvvvx = $item->addsite_views;
 
 		return $item;
 	}
-
-	/**
-	* Method to get list data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getVwmadmin_views()
-	{
-		// Get the user object.
-		$user = JFactory::getUser();
-		// Create a new query object.
-		$db = JFactory::getDBO();
-		$query = $db->getQuery(true);
-
-		// Select some fields
-		$query->select('a.*');
-
-		// From the componentbuilder_admin_view table
-		$query->from($db->quoteName('#__componentbuilder_admin_view', 'a'));
-
-		// Join over the asset groups.
-		$query->select('ag.title AS access_level');
-		$query->join('LEFT', '#__viewlevels AS ag ON ag.id = a.access');
-		// Filter by access level.
-		if ($access = $this->getState('filter.access'))
-		{
-			$query->where('a.access = ' . (int) $access);
-		}
-		// Implement View Level Access
-		if (!$user->authorise('core.options', 'com_componentbuilder'))
-		{
-			$groups = implode(',', $user->getAuthorisedViewLevels());
-			$query->where('a.access IN (' . $groups . ')');
-		}
-
-		// Order the results by ordering
-		$query->order('a.published  ASC');
-		$query->order('a.ordering  ASC');
-
-		// Load the items
-		$db->setQuery($query);
-		$db->execute();
-		if ($db->getNumRows())
-		{
-			$items = $db->loadObjectList();
-
-			// set values to display correctly.
-			if (ComponentbuilderHelper::checkArray($items))
-			{
-				// get user object.
-				$user = JFactory::getUser();
-				foreach ($items as $nr => &$item)
-				{
-					$access = ($user->authorise('admin_view.access', 'com_componentbuilder.admin_view.' . (int) $item->id) && $user->authorise('admin_view.access', 'com_componentbuilder'));
-					if (!$access)
-					{
-						unset($items[$nr]);
-						continue;
-					}
-
-				}
-			}
-
-			// Filter by id Repetable Field
-			$idvvvv = json_decode($this->idvvvv,true);
-			if (ComponentbuilderHelper::checkArray($items) && isset($idvvvv) && ComponentbuilderHelper::checkArray($idvvvv))
-			{
-				foreach ($items as $nr => &$item)
-				{
-					if ($item->id && isset($idvvvv['adminview']) && ComponentbuilderHelper::checkArray($idvvvv['adminview']))
-					{
-						if (!in_array($item->id,$idvvvv['adminview']))
-						{
-							unset($items[$nr]);
-							continue;
-						}
-					}
-					else
-					{
-						unset($items[$nr]);
-						continue;
-					}
-				}
-			}
-			else
-			{
-				return false;
-			}
-			return $items;
-		}
-		return false;
-	}
-
-	/**
-	* Method to get list data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getVwncustom_admin_views()
-	{
-		// Get the user object.
-		$user = JFactory::getUser();
-		// Create a new query object.
-		$db = JFactory::getDBO();
-		$query = $db->getQuery(true);
-
-		// Select some fields
-		$query->select('a.*');
-
-		// From the componentbuilder_custom_admin_view table
-		$query->from($db->quoteName('#__componentbuilder_custom_admin_view', 'a'));
-
-		// From the componentbuilder_snippet table.
-		$query->select($db->quoteName('g.name','snippet_name'));
-		$query->join('LEFT', $db->quoteName('#__componentbuilder_snippet', 'g') . ' ON (' . $db->quoteName('a.snippet') . ' = ' . $db->quoteName('g.id') . ')');
-
-		// Join over the asset groups.
-		$query->select('ag.title AS access_level');
-		$query->join('LEFT', '#__viewlevels AS ag ON ag.id = a.access');
-		// Filter by access level.
-		if ($access = $this->getState('filter.access'))
-		{
-			$query->where('a.access = ' . (int) $access);
-		}
-		// Implement View Level Access
-		if (!$user->authorise('core.options', 'com_componentbuilder'))
-		{
-			$groups = implode(',', $user->getAuthorisedViewLevels());
-			$query->where('a.access IN (' . $groups . ')');
-		}
-
-		// Order the results by ordering
-		$query->order('a.published  ASC');
-		$query->order('a.ordering  ASC');
-
-		// Load the items
-		$db->setQuery($query);
-		$db->execute();
-		if ($db->getNumRows())
-		{
-			$items = $db->loadObjectList();
-
-			// set values to display correctly.
-			if (ComponentbuilderHelper::checkArray($items))
-			{
-				// get user object.
-				$user = JFactory::getUser();
-				foreach ($items as $nr => &$item)
-				{
-					$access = ($user->authorise('custom_admin_view.access', 'com_componentbuilder.custom_admin_view.' . (int) $item->id) && $user->authorise('custom_admin_view.access', 'com_componentbuilder'));
-					if (!$access)
-					{
-						unset($items[$nr]);
-						continue;
-					}
-
-				}
-			}
-
-			// Filter by id Repetable Field
-			$idvvvw = json_decode($this->idvvvw,true);
-			if (ComponentbuilderHelper::checkArray($items) && isset($idvvvw) && ComponentbuilderHelper::checkArray($idvvvw))
-			{
-				foreach ($items as $nr => &$item)
-				{
-					if ($item->id && isset($idvvvw['customadminview']) && ComponentbuilderHelper::checkArray($idvvvw['customadminview']))
-					{
-						if (!in_array($item->id,$idvvvw['customadminview']))
-						{
-							unset($items[$nr]);
-							continue;
-						}
-					}
-					else
-					{
-						unset($items[$nr]);
-						continue;
-					}
-				}
-			}
-			else
-			{
-				return false;
-			}
-			return $items;
-		}
-		return false;
-	}
-
-	/**
-	* Method to get list data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getVwosite_views()
-	{
-		// Get the user object.
-		$user = JFactory::getUser();
-		// Create a new query object.
-		$db = JFactory::getDBO();
-		$query = $db->getQuery(true);
-
-		// Select some fields
-		$query->select('a.*');
-
-		// From the componentbuilder_site_view table
-		$query->from($db->quoteName('#__componentbuilder_site_view', 'a'));
-
-		// From the componentbuilder_snippet table.
-		$query->select($db->quoteName('g.name','snippet_name'));
-		$query->join('LEFT', $db->quoteName('#__componentbuilder_snippet', 'g') . ' ON (' . $db->quoteName('a.snippet') . ' = ' . $db->quoteName('g.id') . ')');
-
-		// Join over the asset groups.
-		$query->select('ag.title AS access_level');
-		$query->join('LEFT', '#__viewlevels AS ag ON ag.id = a.access');
-		// Filter by access level.
-		if ($access = $this->getState('filter.access'))
-		{
-			$query->where('a.access = ' . (int) $access);
-		}
-		// Implement View Level Access
-		if (!$user->authorise('core.options', 'com_componentbuilder'))
-		{
-			$groups = implode(',', $user->getAuthorisedViewLevels());
-			$query->where('a.access IN (' . $groups . ')');
-		}
-
-		// Order the results by ordering
-		$query->order('a.published  ASC');
-		$query->order('a.ordering  ASC');
-
-		// Load the items
-		$db->setQuery($query);
-		$db->execute();
-		if ($db->getNumRows())
-		{
-			$items = $db->loadObjectList();
-
-			// set values to display correctly.
-			if (ComponentbuilderHelper::checkArray($items))
-			{
-				// get user object.
-				$user = JFactory::getUser();
-				foreach ($items as $nr => &$item)
-				{
-					$access = ($user->authorise('site_view.access', 'com_componentbuilder.site_view.' . (int) $item->id) && $user->authorise('site_view.access', 'com_componentbuilder'));
-					if (!$access)
-					{
-						unset($items[$nr]);
-						continue;
-					}
-
-				}
-			}
-
-			// Filter by id Repetable Field
-			$idvvvx = json_decode($this->idvvvx,true);
-			if (ComponentbuilderHelper::checkArray($items) && isset($idvvvx) && ComponentbuilderHelper::checkArray($idvvvx))
-			{
-				foreach ($items as $nr => &$item)
-				{
-					if ($item->id && isset($idvvvx['siteview']) && ComponentbuilderHelper::checkArray($idvvvx['siteview']))
-					{
-						if (!in_array($item->id,$idvvvx['siteview']))
-						{
-							unset($items[$nr]);
-							continue;
-						}
-					}
-					else
-					{
-						unset($items[$nr]);
-						continue;
-					}
-				}
-			}
-			else
-			{
-				return false;
-			}
-			return $items;
-		}
-		return false;
-	} 
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
 	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 * @param   array    $options   Optional array of options for the form creation.
 	 *
 	 * @return  mixed  A JForm object on success, false on failure
 	 *
 	 * @since   1.6
 	 */
-	public function getForm($data = array(), $loadData = true)
+	public function getForm($data = array(), $loadData = true, $options = array('control' => 'jform'))
 	{
+		// set load data option
+		$options['load_data'] = $loadData;
+		// check if xpath was set in options
+		$xpath = false;
+		if (isset($options['xpath']))
+		{
+			$xpath = $options['xpath'];
+			unset($options['xpath']);
+		}
+		// check if clear form was set in options
+		$clear = false;
+		if (isset($options['clear']))
+		{
+			$clear = $options['clear'];
+			unset($options['clear']);
+		}
+
 		// Get the form.
-		$form = $this->loadForm('com_componentbuilder.joomla_component', 'joomla_component', array('control' => 'jform', 'load_data' => $loadData));
+		$form = $this->loadForm('com_componentbuilder.joomla_component', 'joomla_component', $options, $clear, $xpath);
 
 		if (empty($form))
 		{
@@ -542,8 +613,8 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 
 		// Check for existing item.
 		// Modify the form based on Edit State access controls.
-		if ($id != 0 && (!$user->authorise('core.edit.state', 'com_componentbuilder.joomla_component.' . (int) $id))
-			|| ($id == 0 && !$user->authorise('core.edit.state', 'com_componentbuilder')))
+		if ($id != 0 && (!$user->authorise('joomla_component.edit.state', 'com_componentbuilder.joomla_component.' . (int) $id))
+			|| ($id == 0 && !$user->authorise('joomla_component.edit.state', 'com_componentbuilder')))
 		{
 			// Disable fields for display.
 			$form->setFieldAttribute('ordering', 'disabled', 'true');
@@ -559,7 +630,8 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$form->setValue('created_by', null, $user->id);
 		}
 		// Modify the form based on Edit Creaded By access controls.
-		if (!$user->authorise('core.edit.created_by', 'com_componentbuilder'))
+		if ($id != 0 && (!$user->authorise('joomla_component.edit.created_by', 'com_componentbuilder.joomla_component.' . (int) $id))
+			|| ($id == 0 && !$user->authorise('joomla_component.edit.created_by', 'com_componentbuilder')))
 		{
 			// Disable fields for display.
 			$form->setFieldAttribute('created_by', 'disabled', 'true');
@@ -569,60 +641,64 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$form->setFieldAttribute('created_by', 'filter', 'unset');
 		}
 		// Modify the form based on Edit Creaded Date access controls.
-		if (!$user->authorise('core.edit.created', 'com_componentbuilder'))
+		if ($id != 0 && (!$user->authorise('joomla_component.edit.created', 'com_componentbuilder.joomla_component.' . (int) $id))
+			|| ($id == 0 && !$user->authorise('joomla_component.edit.created', 'com_componentbuilder')))
 		{
 			// Disable fields for display.
 			$form->setFieldAttribute('created', 'disabled', 'true');
 			// Disable fields while saving.
 			$form->setFieldAttribute('created', 'filter', 'unset');
 		}
-		// Modify the form based on Edit Add License access controls.
-		if ($id != 0 && (!$user->authorise('joomla_component.edit.add_license', 'com_componentbuilder.joomla_component.' . (int) $id))
-			|| ($id == 0 && !$user->authorise('joomla_component.edit.add_license', 'com_componentbuilder')))
-		{
-			// Disable fields for display.
-			$form->setFieldAttribute('add_license', 'disabled', 'true');
-			// Disable fields for display.
-			$form->setFieldAttribute('add_license', 'readonly', 'true');
-			// Disable radio button for display.
-			$class = $form->getFieldAttribute('add_license', 'class', '');
-			$form->setFieldAttribute('add_license', 'class', $class.' disabled no-click');
-			if (!$form->getValue('add_license'))
-			{
-				// Disable fields while saving.
-				$form->setFieldAttribute('add_license', 'filter', 'unset');
-				// Disable fields while saving.
-				$form->setFieldAttribute('add_license', 'required', 'false');
-			}
-		}
-		// Modify the form based on Edit License Type access controls.
-		if ($id != 0 && (!$user->authorise('joomla_component.edit.license_type', 'com_componentbuilder.joomla_component.' . (int) $id))
-			|| ($id == 0 && !$user->authorise('joomla_component.edit.license_type', 'com_componentbuilder')))
-		{
-			// Disable fields for display.
-			$form->setFieldAttribute('license_type', 'disabled', 'true');
-			// Disable fields for display.
-			$form->setFieldAttribute('license_type', 'readonly', 'true');
-			if (!$form->getValue('license_type'))
-			{
-				// Disable fields while saving.
-				$form->setFieldAttribute('license_type', 'filter', 'unset');
-				// Disable fields while saving.
-				$form->setFieldAttribute('license_type', 'required', 'false');
-			}
-		}
 		// Only load these values if no id is found
 		if (0 == $id)
 		{
-			// Set redirected field name
-			$redirectedField = $jinput->get('ref', null, 'STRING');
-			// Set redirected field value
-			$redirectedValue = $jinput->get('refid', 0, 'INT');
+			// Set redirected view name
+			$redirectedView = $jinput->get('ref', null, 'STRING');
+			// Set field name (or fall back to view name)
+			$redirectedField = $jinput->get('field', $redirectedView, 'STRING');
+			// Set redirected view id
+			$redirectedId = $jinput->get('refid', 0, 'INT');
+			// Set field id (or fall back to redirected view id)
+			$redirectedValue = $jinput->get('field_id', $redirectedId, 'INT');
 			if (0 != $redirectedValue && $redirectedField)
 			{
 				// Now set the local-redirected field default value
 				$form->setValue($redirectedField, null, $redirectedValue);
 			}
+		}
+		// Only load these values if no id is found
+		if (0 == $id)
+		{
+			// set company defaults
+			$form->setValue('companyname', null, JComponentHelper::getParams('com_componentbuilder')->get('export_company', ''));
+			$form->setValue('author', null, JComponentHelper::getParams('com_componentbuilder')->get('export_owner', ''));
+			$form->setValue('email', null, JComponentHelper::getParams('com_componentbuilder')->get('export_email', ''));
+			$form->setValue('website', null, JComponentHelper::getParams('com_componentbuilder')->get('export_website', ''));
+			$form->setValue('copyright', null, JComponentHelper::getParams('com_componentbuilder')->get('export_copyright', 'Copyright (C) 2015. All Rights Reserved'));
+			$form->setValue('license', null, JComponentHelper::getParams('com_componentbuilder')->get('export_license', 'GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html'));
+		}
+
+		// update all editors to use this components global editor
+		$global_editor = JComponentHelper::getParams('com_componentbuilder')->get('editor', 'none');
+		// now get all the editor fields
+		$editors = $form->getXml()->xpath("//field[@type='editor']");
+		// check if we found any
+		if (ComponentbuilderHelper::checkArray($editors))
+		{
+			foreach ($editors as $editor)
+			{
+				// get the field names
+				$name = (string) $editor['name'];
+				// set the field editor value (with none as fallback)
+				$form->setFieldAttribute($name, 'editor', $global_editor . '|none');
+			}
+		}
+
+
+		// Only load the GUID if new item (or empty)
+		if (0 == $id || !($val = $form->getValue('guid')))
+		{
+			$form->setValue('guid', null, ComponentbuilderHelper::GUID());
 		}
 
 		return $form;
@@ -658,7 +734,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 
 			$user = JFactory::getUser();
 			// The record has been set. Check the record permissions.
-			return $user->authorise('core.delete', 'com_componentbuilder.joomla_component.' . (int) $record->id);
+			return $user->authorise('joomla_component.delete', 'com_componentbuilder.joomla_component.' . (int) $record->id);
 		}
 		return false;
 	}
@@ -675,19 +751,19 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	protected function canEditState($record)
 	{
 		$user = JFactory::getUser();
-		$recordId	= (!empty($record->id)) ? $record->id : 0;
+		$recordId = (!empty($record->id)) ? $record->id : 0;
 
 		if ($recordId)
 		{
 			// The record has been set. Check the record permissions.
-			$permission = $user->authorise('core.edit.state', 'com_componentbuilder.joomla_component.' . (int) $recordId);
+			$permission = $user->authorise('joomla_component.edit.state', 'com_componentbuilder.joomla_component.' . (int) $recordId);
 			if (!$permission && !is_null($permission))
 			{
 				return false;
 			}
 		}
 		// In the absense of better information, revert to the component permissions.
-		return parent::canEditState($record);
+		return $user->authorise('joomla_component.edit.state', 'com_componentbuilder');
 	}
     
 	/**
@@ -702,8 +778,9 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	protected function allowEdit($data = array(), $key = 'id')
 	{
 		// Check specific edit permission then general edit permission.
+		$user = JFactory::getUser();
 
-		return JFactory::getUser()->authorise('core.edit', 'com_componentbuilder.joomla_component.'. ((int) isset($data[$key]) ? $data[$key] : 0)) or parent::allowEdit($data, $key);
+		return $user->authorise('joomla_component.edit', 'com_componentbuilder.joomla_component.'. ((int) isset($data[$key]) ? $data[$key] : 0)) or $user->authorise('joomla_component.edit',  'com_componentbuilder');
 	}
     
 	/**
@@ -779,28 +856,30 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		if (empty($data))
 		{
 			$data = $this->getItem();
+			// run the perprocess of the data
+			$this->preprocessData('com_componentbuilder.joomla_component', $data);
 		}
 
 		return $data;
 	}
 
 	/**
-	* Method to validate the form data.
-	*
-	* @param   JForm   $form   The form to validate against.
-	* @param   array   $data   The data to validate.
-	* @param   string  $group  The name of the field group to validate.
-	*
-	* @return  mixed  Array of filtered data if valid, false otherwise.
-	*
-	* @see     JFormRule
-	* @see     JFilterInput
-	* @since   12.2
-	*/
+	 * Method to validate the form data.
+	 *
+	 * @param   JForm   $form   The form to validate against.
+	 * @param   array   $data   The data to validate.
+	 * @param   string  $group  The name of the field group to validate.
+	 *
+	 * @return  mixed  Array of filtered data if valid, false otherwise.
+	 *
+	 * @see     JFormRule
+	 * @see     JFilterInput
+	 * @since   12.2
+	 */
 	public function validate($form, $data, $group = null)
 	{
 		// check if the not_required field is set
-		if (ComponentbuilderHelper::checkString($data['not_required']))
+		if (isset($data['not_required']) && ComponentbuilderHelper::checkString($data['not_required']))
 		{
 			$requiredFields = (array) explode(',',(string) $data['not_required']);
 			$requiredFields = array_unique($requiredFields);
@@ -818,7 +897,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			}
 		}
 		return parent::validate($form, $data, $group);
-	} 
+	}
 
 	/**
 	 * Method to get the unique fields of this table.
@@ -827,9 +906,9 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function getUniqeFields()
+	protected function getUniqueFields()
 	{
-		return false;
+		return array('guid');
 	}
 	
 	/**
@@ -846,6 +925,35 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		if (!parent::delete($pks))
 		{
 			return false;
+		}
+
+		// we must also delete the linked tables found
+		if (ComponentbuilderHelper::checkArray($pks))
+		{
+			$_tablesArray = array(
+				'component_admin_views' => 'joomla_component',
+				'component_site_views' => 'joomla_component',
+				'component_custom_admin_views' => 'joomla_component',
+				'component_updates' => 'joomla_component',
+				'component_mysql_tweaks' => 'joomla_component',
+				'component_custom_admin_menus' => 'joomla_component',
+				'component_config' => 'joomla_component',
+				'component_dashboard' => 'joomla_component',
+				'component_files_folders' => 'joomla_component',
+				'component_placeholders' => 'joomla_component',
+				'custom_code' => 'component'
+			);
+			foreach($_tablesArray as $_updateTable => $_key)
+			{
+				// get the linked IDs
+				if ($_pks = ComponentbuilderHelper::getVars($_updateTable, $pks, $_key, 'id'))
+				{
+					// load the model
+					$_Model = ComponentbuilderHelper::getModel($_updateTable);
+					// delete items
+					$_Model->delete($_pks);
+				}
+			}
 		}
 		
 		return true;
@@ -867,6 +975,35 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		{
 			return false;
 		}
+
+		// we must also update all linked tables
+		if (ComponentbuilderHelper::checkArray($pks))
+		{
+			$_tablesArray = array(
+				'component_admin_views' => 'joomla_component',
+				'component_site_views' => 'joomla_component',
+				'component_custom_admin_views' => 'joomla_component',
+				'component_updates' => 'joomla_component',
+				'component_mysql_tweaks' => 'joomla_component',
+				'component_custom_admin_menus' => 'joomla_component',
+				'component_config' => 'joomla_component',
+				'component_dashboard' => 'joomla_component',
+				'component_files_folders' => 'joomla_component',
+				'component_placeholders' => 'joomla_component',
+				'custom_code' => 'component'
+			);
+			foreach($_tablesArray as $_updateTable => $_key)
+			{
+				// get the linked IDs
+				if ($_pks = ComponentbuilderHelper::getVars($_updateTable, $pks, $_key, 'id'))
+				{
+					// load the model
+					$_Model = ComponentbuilderHelper::getModel($_updateTable);
+					// change publish state
+					$_Model->publish($_pks, $value);
+				}
+			}
+		}
 		
 		return true;
         }
@@ -886,7 +1023,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	{
 		// Sanitize ids.
 		$pks = array_unique($pks);
-		JArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($pks);
 
 		// Remove any values of zero.
 		if (array_search(0, $pks, true))
@@ -927,7 +1064,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 
 		if (!empty($commands['move_copy']))
 		{
-			$cmd = JArrayHelper::getValue($commands, 'move_copy', 'c');
+			$cmd = ArrayHelper::getValue($commands, 'move_copy', 'c');
 
 			if ($cmd == 'c')
 			{
@@ -976,7 +1113,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	 *
 	 * @return  mixed  An array of new IDs on success, boolean false on failure.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchCopy($values, $pks, $contexts)
 	{
@@ -986,18 +1123,16 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$this->user 		= JFactory::getUser();
 			$this->table 		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('joomla_component');
 		}
 
-		if (!$this->canDo->get('core.create') || !$this->canDo->get('core.batch'))
+		if (!$this->canDo->get('joomla_component.create') && !$this->canDo->get('joomla_component.batch'))
 		{
 			return false;
 		}
 
-		// get list of uniqe fields
-		$uniqeFields = $this->getUniqeFields();
+		// get list of unique fields
+		$uniqueFields = $this->getUniqueFields();
 		// remove move_copy from array
 		unset($values['move_copy']);
 
@@ -1006,13 +1141,12 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		{
 			$values['published'] = 0;
 		}
-		elseif (isset($values['published']) && !$this->canDo->get('core.edit.state'))
+		elseif (isset($values['published']) && !$this->canDo->get('joomla_component.edit.state'))
 		{
 				$values['published'] = 0;
 		}
 
 		$newIds = array();
-
 		// Parent exists so let's proceed
 		while (!empty($pks))
 		{
@@ -1022,17 +1156,11 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$this->table->reset();
 
 			// only allow copy if user may edit this item.
-
-			if (!$this->user->authorise('core.edit', $contexts[$pk]))
-
+			if (!$this->user->authorise('joomla_component.edit', $contexts[$pk]))
 			{
-
 				// Not fatal error
-
 				$this->setError(JText::sprintf('JLIB_APPLICATION_ERROR_BATCH_MOVE_ROW_NOT_FOUND', $pk));
-
 				continue;
-
 			}
 
 			// Check that the row actually exists
@@ -1042,7 +1170,6 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -1053,7 +1180,11 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				}
 			}
 
-			$this->table->name = $this->generateUniqe('name',$this->table->name);
+			// Only for strings
+			if (ComponentbuilderHelper::checkString($this->table->system_name) && !is_numeric($this->table->system_name))
+			{
+				$this->table->system_name = $this->generateUnique('system_name',$this->table->system_name);
+			}
 
 			// insert all set values
 			if (ComponentbuilderHelper::checkArray($values))
@@ -1067,12 +1198,12 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				}
 			}
 
-			// update all uniqe fields
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// update all unique fields
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$this->table->$uniqeField = $this->generateUniqe($uniqeField,$this->table->$uniqeField);
+					$this->table->$uniqueField = $this->generateUnique($uniqueField,$this->table->$uniqueField);
 				}
 			}
 
@@ -1080,7 +1211,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$this->table->id = 0;
 
 			// TODO: Deal with ordering?
-			// $this->table->ordering	= 1;
+			// $this->table->ordering = 1;
 
 			// Check the row.
 			if (!$this->table->check())
@@ -1114,7 +1245,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		$this->cleanCache();
 
 		return $newIds;
-	} 
+	}
 
 	/**
 	 * Batch move items to a new category
@@ -1125,7 +1256,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	 *
 	 * @return  boolean  True if successful, false otherwise and internal error is set.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchMove($values, $pks, $contexts)
 	{
@@ -1135,19 +1266,17 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$this->user		= JFactory::getUser();
 			$this->table		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('joomla_component');
 		}
 
-		if (!$this->canDo->get('core.edit') && !$this->canDo->get('core.batch'))
+		if (!$this->canDo->get('joomla_component.edit') && !$this->canDo->get('joomla_component.batch'))
 		{
 			$this->setError(JText::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
 			return false;
 		}
 
 		// make sure published only updates if user has the permission.
-		if (isset($values['published']) && !$this->canDo->get('core.edit.state'))
+		if (isset($values['published']) && !$this->canDo->get('joomla_component.edit.state'))
 		{
 			unset($values['published']);
 		}
@@ -1157,10 +1286,9 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 		// Parent exists so we proceed
 		foreach ($pks as $pk)
 		{
-			if (!$this->user->authorise('core.edit', $contexts[$pk]))
+			if (!$this->user->authorise('joomla_component.edit', $contexts[$pk]))
 			{
 				$this->setError(JText::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
-
 				return false;
 			}
 
@@ -1171,7 +1299,6 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -1250,18 +1377,39 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$metadata = new JRegistry;
 			$metadata->loadArray($data['metadata']);
 			$data['metadata'] = (string) $metadata;
-		} 
-
-		// Set the readme string to base64 string.
-		if (isset($data['readme']))
-		{
-			$data['readme'] = base64_encode($data['readme']);
 		}
 
-		// Set the php_postflight_update string to base64 string.
-		if (isset($data['php_postflight_update']))
+		// if system name is empty create from name
+		if (empty($data['system_name']) || !ComponentbuilderHelper::checkString($data['system_name']))
 		{
-			$data['php_postflight_update'] = base64_encode($data['php_postflight_update']);
+			$data['system_name'] = $data['name'];
+		}
+
+		// Set the GUID if empty or not valid
+		if (empty($data['guid']) && $data['id'] > 0)
+		{
+			// get the existing one
+			$data['guid'] = (string) ComponentbuilderHelper::getVar('joomla_component', $data['id'], 'id', 'guid');
+		}
+		// Set the GUID if empty or not valid
+		while (!ComponentbuilderHelper::validGUID($data['guid'], "joomla_component", $data['id']))
+		{
+			// must always be set
+			$data['guid'] = (string) ComponentbuilderHelper::GUID();
+		}
+
+
+		// Set the addcontributors items to data.
+		if (isset($data['addcontributors']) && is_array($data['addcontributors']))
+		{
+			$addcontributors = new JRegistry;
+			$addcontributors->loadArray($data['addcontributors']);
+			$data['addcontributors'] = (string) $addcontributors;
+		}
+		elseif (!isset($data['addcontributors']))
+		{
+			// Set the empty addcontributors to data
+			$data['addcontributors'] = '';
 		}
 
 		// Set the buildcompsql string to base64 string.
@@ -1270,40 +1418,10 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$data['buildcompsql'] = base64_encode($data['buildcompsql']);
 		}
 
-		// Set the php_preflight_update string to base64 string.
-		if (isset($data['php_preflight_update']))
-		{
-			$data['php_preflight_update'] = base64_encode($data['php_preflight_update']);
-		}
-
 		// Set the php_helper_both string to base64 string.
 		if (isset($data['php_helper_both']))
 		{
 			$data['php_helper_both'] = base64_encode($data['php_helper_both']);
-		}
-
-		// Set the php_postflight_install string to base64 string.
-		if (isset($data['php_postflight_install']))
-		{
-			$data['php_postflight_install'] = base64_encode($data['php_postflight_install']);
-		}
-
-		// Set the php_method_uninstall string to base64 string.
-		if (isset($data['php_method_uninstall']))
-		{
-			$data['php_method_uninstall'] = base64_encode($data['php_method_uninstall']);
-		}
-
-		// Set the php_preflight_install string to base64 string.
-		if (isset($data['php_preflight_install']))
-		{
-			$data['php_preflight_install'] = base64_encode($data['php_preflight_install']);
-		}
-
-		// Set the sql string to base64 string.
-		if (isset($data['sql']))
-		{
-			$data['sql'] = base64_encode($data['sql']);
 		}
 
 		// Set the php_helper_admin string to base64 string.
@@ -1330,43 +1448,112 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$data['php_site_event'] = base64_encode($data['php_site_event']);
 		}
 
-		// Set the css string to base64 string.
-		if (isset($data['css']))
+		// Set the javascript string to base64 string.
+		if (isset($data['javascript']))
 		{
-			$data['css'] = base64_encode($data['css']);
+			$data['javascript'] = base64_encode($data['javascript']);
 		}
 
-		// Set the php_dashboard_methods string to base64 string.
-		if (isset($data['php_dashboard_methods']))
+		// Set the css_admin string to base64 string.
+		if (isset($data['css_admin']))
 		{
-			$data['php_dashboard_methods'] = base64_encode($data['php_dashboard_methods']);
+			$data['css_admin'] = base64_encode($data['css_admin']);
 		}
 
-		// Get the basic encription key.
+		// Set the css_site string to base64 string.
+		if (isset($data['css_site']))
+		{
+			$data['css_site'] = base64_encode($data['css_site']);
+		}
+
+		// Set the php_preflight_install string to base64 string.
+		if (isset($data['php_preflight_install']))
+		{
+			$data['php_preflight_install'] = base64_encode($data['php_preflight_install']);
+		}
+
+		// Set the php_preflight_update string to base64 string.
+		if (isset($data['php_preflight_update']))
+		{
+			$data['php_preflight_update'] = base64_encode($data['php_preflight_update']);
+		}
+
+		// Set the php_postflight_install string to base64 string.
+		if (isset($data['php_postflight_install']))
+		{
+			$data['php_postflight_install'] = base64_encode($data['php_postflight_install']);
+		}
+
+		// Set the php_postflight_update string to base64 string.
+		if (isset($data['php_postflight_update']))
+		{
+			$data['php_postflight_update'] = base64_encode($data['php_postflight_update']);
+		}
+
+		// Set the php_method_uninstall string to base64 string.
+		if (isset($data['php_method_uninstall']))
+		{
+			$data['php_method_uninstall'] = base64_encode($data['php_method_uninstall']);
+		}
+
+		// Set the sql string to base64 string.
+		if (isset($data['sql']))
+		{
+			$data['sql'] = base64_encode($data['sql']);
+		}
+
+		// Set the sql_uninstall string to base64 string.
+		if (isset($data['sql_uninstall']))
+		{
+			$data['sql_uninstall'] = base64_encode($data['sql_uninstall']);
+		}
+
+		// Set the readme string to base64 string.
+		if (isset($data['readme']))
+		{
+			$data['readme'] = base64_encode($data['readme']);
+		}
+
+		// Get the basic encryption key.
 		$basickey = ComponentbuilderHelper::getCryptKey('basic');
-		// Get the encription object
-		$basic = new FOFEncryptAes($basickey, 128);
+		// Get the encryption object
+		$basic = new FOFEncryptAes($basickey);
 
-		// Encript data update_server_ftp.
-		if (isset($data['update_server_ftp']) && $basickey)
+		// Encrypt data crowdin_username.
+		if (isset($data['crowdin_username']) && $basickey)
 		{
-			$data['update_server_ftp'] = $basic->encryptString($data['update_server_ftp']);
+			$data['crowdin_username'] = $basic->encryptString($data['crowdin_username']);
 		}
 
-		// Encript data sales_server_ftp.
-		if (isset($data['sales_server_ftp']) && $basickey)
-		{
-			$data['sales_server_ftp'] = $basic->encryptString($data['sales_server_ftp']);
-		}
-
-		// Encript data whmcs_key.
+		// Encrypt data whmcs_key.
 		if (isset($data['whmcs_key']) && $basickey)
 		{
 			$data['whmcs_key'] = $basic->encryptString($data['whmcs_key']);
 		}
 
+		// Encrypt data export_key.
+		if (isset($data['export_key']) && $basickey)
+		{
+			$data['export_key'] = $basic->encryptString($data['export_key']);
+		}
+
+		// Encrypt data crowdin_project_api_key.
+		if (isset($data['crowdin_project_api_key']) && $basickey)
+		{
+			$data['crowdin_project_api_key'] = $basic->encryptString($data['crowdin_project_api_key']);
+		}
+
+		// Encrypt data crowdin_account_api_key.
+		if (isset($data['crowdin_account_api_key']) && $basickey)
+		{
+			$data['crowdin_account_api_key'] = $basic->encryptString($data['crowdin_account_api_key']);
+		}
+
 		// we check if component should be build from sql file
-		ComponentbuilderHelper::dynamicBuilder($data, 1);
+		if (isset($data['buildcomp']) && 1 == $data['buildcomp'])
+		{
+			ComponentbuilderHelper::dynamicBuilder($data, 1);
+		}
         
 		// Set the Params Items to data
 		if (isset($data['params']) && is_array($data['params']))
@@ -1376,16 +1563,16 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 			$data['params'] = (string) $params;
 		}
 
-		// Alter the uniqe field for save as copy
+		// Alter the unique field for save as copy
 		if ($input->get('task') === 'save2copy')
 		{
-			// Automatic handling of other uniqe fields
-			$uniqeFields = $this->getUniqeFields();
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// Automatic handling of other unique fields
+			$uniqueFields = $this->getUniqueFields();
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$data[$uniqeField] = $this->generateUniqe($uniqeField,$data[$uniqeField]);
+					$data[$uniqueField] = $this->generateUnique($uniqueField,$data[$uniqueField]);
 				}
 			}
 		}
@@ -1398,7 +1585,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	}
 	
 	/**
-	 * Method to generate a uniqe value.
+	 * Method to generate a unique value.
 	 *
 	 * @param   string  $field name.
 	 * @param   string  $value data.
@@ -1407,28 +1594,28 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function generateUniqe($field,$value)
+	protected function generateUnique($field,$value)
 	{
 
-		// set field value uniqe 
+		// set field value unique
 		$table = $this->getTable();
 
 		while ($table->load(array($field => $value)))
 		{
-			$value = JString::increment($value);
+			$value = StringHelper::increment($value);
 		}
 
 		return $value;
 	}
 
 	/**
-	* Method to change the title & alias.
-	*
-	* @param   string   $title        The title.
-	*
-	* @return	array  Contains the modified title and alias.
-	*
-	*/
+	 * Method to change the title
+	 *
+	 * @param   string   $title   The title.
+	 *
+	 * @return	array  Contains the modified title and alias.
+	 *
+	 */
 	protected function _generateNewTitle($title)
 	{
 
@@ -1437,7 +1624,7 @@ class ComponentbuilderModelJoomla_component extends JModelAdmin
 
 		while ($table->load(array('title' => $title)))
 		{
-			$title = JString::increment($title);
+			$title = StringHelper::increment($title);
 		}
 
 		return $title;

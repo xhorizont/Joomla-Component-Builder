@@ -1,33 +1,16 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 12 of this MVC
-	@build			20th October, 2016
-	@created		30th April, 2015
-	@package		Component Builder
-	@subpackage		view.html.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
-
-// import Joomla view library
-jimport('joomla.application.component.view');
 
 /**
  * Fieldtype View class
@@ -40,41 +23,50 @@ class ComponentbuilderViewFieldtype extends JViewLegacy
 	 */
 	public function display($tpl = null)
 	{
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-                {
-			JError::raiseError(500, implode('<br />', $errors));
-			return false;
-		}
-
+		// set params
+		$this->params = JComponentHelper::getParams('com_componentbuilder');
 		// Assign the variables
-		$this->form 		= $this->get('Form');
-		$this->item 		= $this->get('Item');
-		$this->script 		= $this->get('Script');
-		$this->state		= $this->get('State');
-                // get action permissions
-		$this->canDo		= ComponentbuilderHelper::getActions('fieldtype',$this->item);
+		$this->form = $this->get('Form');
+		$this->item = $this->get('Item');
+		$this->script = $this->get('Script');
+		$this->state = $this->get('State');
+		// get action permissions
+		$this->canDo = ComponentbuilderHelper::getActions('fieldtype', $this->item);
 		// get input
 		$jinput = JFactory::getApplication()->input;
-		$this->ref 		= $jinput->get('ref', 0, 'word');
-		$this->refid            = $jinput->get('refid', 0, 'int');
-		$this->referral         = '';
-		if ($this->refid)
-                {
-                        // return to the item that refered to this item
-                        $this->referral = '&ref='.(string)$this->ref.'&refid='.(int)$this->refid;
-                }
-                elseif($this->ref)
-                {
-                        // return to the list view that refered to this item
-                        $this->referral = '&ref='.(string)$this->ref;
-                }
+		$this->ref = $jinput->get('ref', 0, 'word');
+		$this->refid = $jinput->get('refid', 0, 'int');
+		$return = $jinput->get('return', null, 'base64');
+		// set the referral string
+		$this->referral = '';
+		if ($this->refid && $this->ref)
+		{
+			// return to the item that referred to this item
+			$this->referral = '&ref=' . (string)$this->ref . '&refid=' . (int)$this->refid;
+		}
+		elseif($this->ref)
+		{
+			// return to the list view that referred to this item
+			$this->referral = '&ref=' . (string)$this->ref;
+		}
+		// check return value
+		if (!is_null($return))
+		{
+			// add the return value
+			$this->referral .= '&return=' . (string)$return;
+		}
 
 		// Get Linked view data
-		$this->vzzfields		= $this->get('Vzzfields');
+		$this->vycfields = $this->get('Vycfields');
 
 		// Set the toolbar
 		$this->addToolBar();
+		
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			throw new Exception(implode("\n", $errors), 500);
+		}
 
 		// Display the template
 		parent::display($tpl);
@@ -96,7 +88,7 @@ class ComponentbuilderViewFieldtype extends JViewLegacy
 
 		JToolbarHelper::title( JText::_($isNew ? 'COM_COMPONENTBUILDER_FIELDTYPE_NEW' : 'COM_COMPONENTBUILDER_FIELDTYPE_EDIT'), 'pencil-2 article-add');
 		// Built the actions for new and existing records.
-		if ($this->refid || $this->ref)
+		if (ComponentbuilderHelper::checkString($this->referral))
 		{
 			if ($this->canDo->get('fieldtype.create') && $isNew)
 			{
@@ -167,7 +159,7 @@ class ComponentbuilderViewFieldtype extends JViewLegacy
 		}
 	}
 
-        /**
+	/**
 	 * Escapes a value for output in a view script.
 	 *
 	 * @param   mixed  $var  The output to escape.
@@ -181,7 +173,7 @@ class ComponentbuilderViewFieldtype extends JViewLegacy
     		// use the helper htmlEscape method instead and shorten the string
 			return ComponentbuilderHelper::htmlEscape($var, $this->_charset, true, 30);
 		}
-                // use the helper htmlEscape method instead.
+		// use the helper htmlEscape method instead.
 		return ComponentbuilderHelper::htmlEscape($var, $this->_charset);
 	}
 
@@ -193,21 +185,80 @@ class ComponentbuilderViewFieldtype extends JViewLegacy
 	protected function setDocument()
 	{
 		$isNew = ($this->item->id < 1);
-		$document = JFactory::getDocument();
-		$document->setTitle(JText::_($isNew ? 'COM_COMPONENTBUILDER_FIELDTYPE_NEW' : 'COM_COMPONENTBUILDER_FIELDTYPE_EDIT'));
-		$document->addStyleSheet(JURI::root() . "administrator/components/com_componentbuilder/assets/css/fieldtype.css"); 
+		if (!isset($this->document))
+		{
+			$this->document = JFactory::getDocument();
+		}
+		$this->document->setTitle(JText::_($isNew ? 'COM_COMPONENTBUILDER_FIELDTYPE_NEW' : 'COM_COMPONENTBUILDER_FIELDTYPE_EDIT'));
+		$this->document->addStyleSheet(JURI::root() . "administrator/components/com_componentbuilder/assets/css/fieldtype.css", (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+		// Add Ajax Token
+		$this->document->addScriptDeclaration("var token = '".JSession::getFormToken()."';");
 
 		// Add the CSS for Footable
-		$document->addStyleSheet('https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css');
-		$document->addStyleSheet(JURI::root() .'media/com_componentbuilder/footable/css/footable.standalone.min.css');
+		$this->document->addStyleSheet('https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css');
+		$this->document->addStyleSheet(JURI::root() .'media/com_componentbuilder/footable-v3/css/footable.standalone.min.css', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
 		// Add the JavaScript for Footable (adding all funtions)
-		$document->addScript(JURI::root() .'media/com_componentbuilder/footable/js/footable.min.js');
+		$this->document->addScript(JURI::root() .'media/com_componentbuilder/footable-v3/js/footable.min.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
 
 		$footable = "jQuery(document).ready(function() { jQuery(function () { jQuery('.footable').footable();});});";
-		$document->addScriptDeclaration($footable);
+		$this->document->addScriptDeclaration($footable);
 
-		$document->addScript(JURI::root() . $this->script);
-		$document->addScript(JURI::root() . "administrator/components/com_componentbuilder/views/fieldtype/submitbutton.js"); 
+		$this->document->addScript(JURI::root() . $this->script, (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+		$this->document->addScript(JURI::root() . "administrator/components/com_componentbuilder/views/fieldtype/submitbutton.js", (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript'); 
+
+		// get Uikit Version
+		$this->uikitVersion = $this->params->get('uikit_version', 2);
+		// Load uikit options.
+		$uikit = $this->params->get('uikit_load');
+		$isAdmin = JFactory::getApplication()->isClient('administrator');
+		// Set script size.
+		$size = $this->params->get('uikit_min');
+		// Use Uikit Version 2
+		if (2 == $this->uikitVersion && ($isAdmin || $uikit != 2))
+		{
+			// Set css style.
+			$style = $this->params->get('uikit_style');
+			// only load if needed
+			if ($isAdmin || $uikit != 3)
+			{
+				// add the style sheets
+				$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/uikit' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			}
+			// add the style sheets
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/accordion' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/tooltip' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/notify' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/form-file' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/progress' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/placeholder' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v2//css/components/upload' . $style . $size . '.css' , (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			// only load if needed
+			if ($isAdmin || $uikit != 3)
+			{
+				// add JavaScripts
+				$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/uikit' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			}
+			// add JavaScripts
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/accordion' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/tooltip' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/lightbox' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/notify' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/upload' . $size . '.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+		}
+		// Use Uikit Version 3
+		elseif (3 == $this->uikitVersion && ($isAdmin || $uikit != 2))
+		{
+			// add the style sheets
+			$this->document->addStyleSheet( JURI::root(true) .'/media/com_componentbuilder/uikit-v3/css/uikit'.$size.'.css', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
+			// add JavaScripts
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v3/js/uikit'.$size.'.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+			// add icons
+			$this->document->addScript( JURI::root(true) .'/media/com_componentbuilder/uikit-v3/js/uikit-icons'.$size.'.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+		}
+		// add var key
+		$this->document->addScriptDeclaration("var vastDevMod = '" . $this->get('VDM') . "';");
+		// add return_here
+		$this->document->addScriptDeclaration("var return_here = '" . urlencode(base64_encode((string) JUri::getInstance())) . "';");
 		JText::script('view not acceptable. Error');
 	}
 }

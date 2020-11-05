@@ -1,36 +1,30 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		2.3.6
-	@build			8th March, 2017
-	@created		30th April, 2015
-	@package		Component Builder
-	@subpackage		import.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
+
+use Joomla\Utilities\ArrayHelper;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * Componentbuilder Import Model
  */
 class ComponentbuilderModelImport extends JModelLegacy
 {
+	// set uploading values
+	protected $use_streams = false;
+	protected $allow_unsafe = false;
+	protected $safeFileOptions = array();
+	
 	/**
 	 * @var object JTable object
 	 */
@@ -72,10 +66,6 @@ class ComponentbuilderModelImport extends JModelLegacy
 		// Recall the 'Import from Directory' path.
 		$path = $app->getUserStateFromRequest($this->_context . '.import_directory', 'import_directory', $app->get('tmp_path'));
 		$this->setState('import.directory', $path);
-		// set uploading values
-		$this->use_streams = false;
-		$this->allow_unsafe = false;
-		$this->safeFileOptions = array();
 		parent::populateState();
 	}
 
@@ -88,10 +78,10 @@ class ComponentbuilderModelImport extends JModelLegacy
 	public function import()
 	{
 		$this->setState('action', 'import');
-		$app 		= JFactory::getApplication();
-		$session 	= JFactory::getSession();
-		$package 	= null;
-		$continue	= false;
+		$app = JFactory::getApplication();
+		$session = JFactory::getSession();
+		$package = null;
+		$continue = false;
 		// get import type
 		$this->getType = $app->input->getString('gettype', NULL);
 		// get import type
@@ -146,7 +136,7 @@ class ComponentbuilderModelImport extends JModelLegacy
 		
 		// first link data to table headers
 		if(!$continue){
-			$package	= json_encode($package);
+			$package = json_encode($package);
 			$session->set('package', $package);
 			$session->set('dataType', $this->dataType);
 			$session->set('hasPackage', true);
@@ -198,8 +188,8 @@ class ComponentbuilderModelImport extends JModelLegacy
 	protected function _getPackageFromUpload()
 	{		
 		// Get the uploaded file information
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Do not change the filter type 'raw'. We need this to let files containing PHP code to upload. See JInputFiles::get.
 		$userfile = $input->files->get('import_package', null, 'raw');
@@ -226,9 +216,9 @@ class ComponentbuilderModelImport extends JModelLegacy
 		}
 
 		// Build the appropriate paths
-		$config		= JFactory::getConfig();
-		$tmp_dest	= $config->get('tmp_path') . '/' . $userfile['name'];
-		$tmp_src	= $userfile['tmp_name'];
+		$config = JFactory::getConfig();
+		$tmp_dest = $config->get('tmp_path') . '/' . $userfile['name'];
+		$tmp_src = $userfile['tmp_name'];
 
 		// Move uploaded file
 		jimport('joomla.filesystem.file');
@@ -259,8 +249,8 @@ class ComponentbuilderModelImport extends JModelLegacy
 	 */
 	protected function _getPackageFromFolder()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Get the path to the package to import
 		$p_dir = $input->getString('import_directory');
@@ -282,21 +272,16 @@ class ComponentbuilderModelImport extends JModelLegacy
 		}
 		
 		// check the extention
-		switch(strtolower(pathinfo($p_dir, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($p_dir))
+		{
+			// set error message
 			$app->enqueueMessage(JText::_('COM_COMPONENTBUILDER_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
 		}
 		
 		$package['packagename'] = null;
-		$package['dir'] 		= $p_dir;
-		$package['type'] 		= $type;
+		$package['dir'] = $p_dir;
+		$package['type'] = $type;
 
 		return $package;
 	}
@@ -309,8 +294,8 @@ class ComponentbuilderModelImport extends JModelLegacy
 	 */
 	protected function _getPackageFromUrl()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 		
 		// Get the URL of the package to import
 		$url = $input->getString('import_url');
@@ -349,38 +334,54 @@ class ComponentbuilderModelImport extends JModelLegacy
 	 */
 	protected function check($archivename)
 	{
-		$app	= JFactory::getApplication();
+		$app = JFactory::getApplication();
 		// Clean the name
 		$archivename = JPath::clean($archivename);
 		
 		// check the extention
-		switch(strtolower(pathinfo($archivename, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($archivename))
+		{
 			// Cleanup the import files
 			$this->remove($archivename);
 			$app->enqueueMessage(JText::_('COM_COMPONENTBUILDER_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
-		}	
+		}
 		
-		$config					= JFactory::getConfig();
+		$config = JFactory::getConfig();
 		// set Package Name
-		$check['packagename']	= $archivename;
+		$check['packagename'] = $archivename;
 		
 		// set directory
-		$check['dir']		= $config->get('tmp_path'). '/' .$archivename;
+		$check['dir'] = $config->get('tmp_path'). '/' .$archivename;
 		
 		// set type
-		$check['type']		= $this->getType;
+		$check['type'] = $this->getType;
 		
 		return $check;
 	}
-	
+
+	/**
+	 * Check the extension
+	 *
+	 * @param   string  $file    Name of the uploaded file
+	 *
+	 * @return  boolean  True on success
+	 *
+	 */
+	protected function checkExtension($file)
+	{
+		// check the extention
+		switch(strtolower(pathinfo($file, PATHINFO_EXTENSION)))
+		{
+			case 'xls':
+			case 'ods':
+			case 'csv':
+			return true;
+			break;
+		}
+		return false;
+	}
+
 	/**
 	 * Clean up temporary uploaded spreadsheet
 	 *
@@ -393,8 +394,8 @@ class ComponentbuilderModelImport extends JModelLegacy
 	{
 		jimport('joomla.filesystem.file');
 		
-		$config		= JFactory::getConfig();
-		$package	= $config->get('tmp_path'). '/' .$package;
+		$config = JFactory::getConfig();
+		$package = $config->get('tmp_path'). '/' .$package;
 
 		// Is the package file a valid file?
 		if (is_file($package))
@@ -407,7 +408,7 @@ class ComponentbuilderModelImport extends JModelLegacy
 			JFile::delete(JPath::clean($package));
 		}
 	}
-	
+
 	/**
 	* Set the data from the spreadsheet to the database
 	*
@@ -420,29 +421,37 @@ class ComponentbuilderModelImport extends JModelLegacy
 	{
 		if (ComponentbuilderHelper::checkArray($target_headers))
 		{
-			// make sure the file is loaded		
-			JLoader::import('PHPExcel', JPATH_COMPONENT_ADMINISTRATOR . '/helpers');
+			// make sure the file is loaded
+			ComponentbuilderHelper::composerAutoload('phpspreadsheet');
 			$jinput = JFactory::getApplication()->input;
 			foreach($target_headers as $header)
 			{
-				$data['target_headers'][$header] = $jinput->getString($header, null);
+				if (($column = $jinput->getString($header, false)) !== false ||
+					($column = $jinput->getString(strtolower($header), false)) !== false)
+				{
+					$data['target_headers'][$header] = $column;
+				}
+				else
+				{
+					$data['target_headers'][$header] = null;
+				}
 			}
 			// set the data
 			if(isset($package['dir']))
 			{
-				$inputFileType = PHPExcel_IOFactory::identify($package['dir']);
-				$excelReader = PHPExcel_IOFactory::createReader($inputFileType);
+				$inputFileType = IOFactory::identify($package['dir']);
+				$excelReader = IOFactory::createReader($inputFileType);
 				$excelReader->setReadDataOnly(true);
 				$excelObj = $excelReader->load($package['dir']);
 				$data['array'] = $excelObj->getActiveSheet()->toArray(null, true,true,true);
-				$excelObj->disconnectWorksheets(); 
+				$excelObj->disconnectWorksheets();
 				unset($excelObj);
-				return $this->save($data,$table);
+				return $this->save($data, $table);
 			}
 		}
 		return false;
 	}
-	
+
 	/**
 	* Save the data from the file to the database
 	*
@@ -457,14 +466,14 @@ class ComponentbuilderModelImport extends JModelLegacy
 		if(ComponentbuilderHelper::checkArray($data['array']))
 		{
 			// get user object
-			$user  		= JFactory::getUser();
+			$user		= JFactory::getUser();
 			// remove header if it has headers
-			$id_key 	= $data['target_headers']['id'];
-			$published_key 	= $data['target_headers']['published'];
-			$ordering_key 	= $data['target_headers']['ordering'];
+			$id_key	= $data['target_headers']['id'];
+			$published_key	= $data['target_headers']['published'];
+			$ordering_key	= $data['target_headers']['ordering'];
 			// get the first array set
 			$firstSet = reset($data['array']);
-            
+
 			// check if first array is a header array and remove if true
 			if($firstSet[$id_key] == 'id' || $firstSet[$published_key] == 'published' || $firstSet[$ordering_key] == 'ordering')
 			{
@@ -507,11 +516,11 @@ class ComponentbuilderModelImport extends JModelLegacy
 					if($found && $canEdit)
 					{
 						// update item
-						$id 		= $row[$id_key];
+						$id		= $row[$id_key];
 						$version	= $db->loadResult();
 						// reset all buckets
-						$query 		= $db->getQuery(true);
-						$fields 	= array();
+						$query		= $db->getQuery(true);
+						$fields	= array();
 						// Fields to update.
 						foreach($row as $key => $cell)
 						{
@@ -562,7 +571,7 @@ class ComponentbuilderModelImport extends JModelLegacy
 						$conditions = array(
 							$db->quoteName('id') . ' = ' . $id
 						);
-						 
+						
 						$query->update($db->quoteName('#__componentbuilder_'.$table))->set($fields)->where($conditions);
 						$db->setQuery($query);
 						$db->execute();
@@ -572,8 +581,8 @@ class ComponentbuilderModelImport extends JModelLegacy
 						// insert item
 						$query = $db->getQuery(true);
 						// reset all buckets
-						$columns 	= array();
-						$values 	= array();
+						$columns	= array();
+						$values	= array();
 						$version	= false;
 						// Insert columns. Insert values.
 						foreach($row as $key => $cell)
@@ -612,30 +621,30 @@ class ComponentbuilderModelImport extends JModelLegacy
 							// set to insert array
 							if(in_array($key, $data['target_headers']) && is_numeric($cell))
 							{
-								$columns[] 	= $target[$key];
-								$values[] 	= $cell;
+								$columns[]	= $target[$key];
+								$values[]	= $cell;
 							}
 							elseif(in_array($key, $data['target_headers']) && is_string($cell))
 							{
-								$columns[] 	= $target[$key];
-								$values[] 	= $db->quote($cell);
+								$columns[]	= $target[$key];
+								$values[]	= $db->quote($cell);
 							}
 							elseif(in_array($key, $data['target_headers']) && is_null($cell))
 							{
 								// if import data is null then set empty
-								$columns[] 	= $target[$key];
-								$values[] 	= "''";
+								$columns[]	= $target[$key];
+								$values[]	= "''";
 							}
 						}
 						// load the defaults
-						$columns[] 	= 'created_by';
-						$values[] 	= $db->quote($user->id);
-						$columns[] 	= 'created';
-						$values[] 	= $db->quote($todayDate);
+						$columns[]	= 'created_by';
+						$values[]	= $db->quote($user->id);
+						$columns[]	= 'created';
+						$values[]	= $db->quote($todayDate);
 						if (!$version)
 						{
-							$columns[] 	= 'version';
-							$values[] 	= 1;
+							$columns[]	= 'version';
+							$values[]	= 1;
 						}
 						// Prepare the insert query.
 						$query
@@ -662,7 +671,7 @@ class ComponentbuilderModelImport extends JModelLegacy
 		}
 		return false;
 	}
-	
+
 	protected function getAlias($name,$type = false)
 	{
 		// sanitize the name to an alias

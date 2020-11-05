@@ -1,35 +1,20 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 6 of this MVC
-	@build			17th October, 2016
-	@created		4th March, 2016
-	@package		Component Builder
-	@subpackage		help_document.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
 use Joomla\Registry\Registry;
-
-// import Joomla table library
-jimport('joomla.database.table');
+use Joomla\String\StringHelper;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Help_documents Table class
@@ -54,7 +39,7 @@ class ComponentbuilderTableHelp_document extends JTable
 		parent::__construct('#__componentbuilder_help_document', 'id', $db);
 
 		// Adding History Options
-		JTableObserverContenthistory::createObserver($this, array('typeAlias' => 'com_componentbuilder.help_document')); 
+		JTableObserverContenthistory::createObserver($this, array('typeAlias' => 'com_componentbuilder.help_document'));
 	}	
  
 	public function bind($array, $ignore = '')
@@ -157,7 +142,7 @@ class ComponentbuilderTableHelp_document extends JTable
 
 			while ($table->load(array('alias' => $this->alias)) && ($table->id != $this->id || $this->id == 0))
 			{
-				$this->alias = JString::increment($this->alias, 'dash');
+				$this->alias = StringHelper::increment($this->alias, 'dash');
 			}
 		}
 		
@@ -172,7 +157,7 @@ class ComponentbuilderTableHelp_document extends JTable
 			$bad_characters = array("\n", "\r", "\"", "<", ">");
 
 			// Remove bad characters.
-			$after_clean = JString::str_ireplace($bad_characters, "", $this->metakey);
+			$after_clean = StringHelper::str_ireplace($bad_characters, "", $this->metakey);
 
 			// Create array using commas as delimiter.
 			$keys = explode(',', $after_clean);
@@ -196,7 +181,7 @@ class ComponentbuilderTableHelp_document extends JTable
 		{
 			// Only process if not empty
 			$bad_characters = array("\"", "<", ">");
-			$this->metadesc = JString::str_ireplace($bad_characters, "", $this->metadesc);
+			$this->metadesc = StringHelper::str_ireplace($bad_characters, "", $this->metadesc);
 		}
 
 		// If we don't have any access rules set at this point just use an empty JAccessRules class
@@ -235,9 +220,9 @@ class ComponentbuilderTableHelp_document extends JTable
 		$db->execute();
 		if ($db->loadRowList())
 		{
-			// asset alread set so use saved rules
+			// asset already set so use saved rules
 			$assetId = (int) $db->loadResult();
-			return JAccess::getAssetRules($assetId);
+			return JAccess::getAssetRules($assetId); // (TODO) instead of keeping inherited Allowed it becomes Allowed.
 		}
 		// try again
 		elseif ($try)
@@ -265,7 +250,7 @@ class ComponentbuilderTableHelp_document extends JTable
 						}
 					}
 					// check if there are any view values remaining
-					if (count($_result))
+					if (count( (array) $_result))
 					{
 						$_result = json_encode($_result);
 						$_result = array($_result);
@@ -335,14 +320,14 @@ class ComponentbuilderTableHelp_document extends JTable
 	{
 		if (empty($this->alias))
 		{
-			$this->alias = $this->name;
+			$this->alias = $this->title;
 		}
 
 		$this->alias = JApplication::stringURLSafe($this->alias);
 
 		if (trim(str_replace('-', '', $this->alias)) == '')
 		{
-			$this->alias = JFactory::getDate()->format("Y-m-d-H-i-s");
+			$this->alias = JFactory::getDate()->format('Y-m-d-H-i-s');
 		}
 
 		return $this->alias;

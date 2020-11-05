@@ -1,33 +1,16 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 81 of this MVC
-	@build			1st March, 2017
-	@created		11th October, 2016
-	@package		Component Builder
-	@subpackage		view.html.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
-
-// import Joomla view library
-jimport('joomla.application.component.view');
 
 /**
  * Componentbuilder View class for the Custom_codes
@@ -46,39 +29,41 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 			ComponentbuilderHelper::addSubmenu('custom_codes');
 		}
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-                {
-			JError::raiseError(500, implode('<br />', $errors));
-			return false;
-		}
-
 		// Assign data to the view
-		$this->items 		= $this->get('Items');
-		$this->pagination 	= $this->get('Pagination');
-		$this->state		= $this->get('State');
-		$this->user 		= JFactory::getUser();
-		$this->listOrder	= $this->escape($this->state->get('list.ordering'));
-		$this->listDirn		= $this->escape($this->state->get('list.direction'));
-		$this->saveOrder	= $this->listOrder == 'ordering';
-                // get global action permissions
-		$this->canDo		= ComponentbuilderHelper::getActions('custom_code');
-		$this->canEdit		= $this->canDo->get('custom_code.edit');
-		$this->canState		= $this->canDo->get('custom_code.edit.state');
-		$this->canCreate	= $this->canDo->get('custom_code.create');
-		$this->canDelete	= $this->canDo->get('custom_code.delete');
-		$this->canBatch	= $this->canDo->get('core.batch');
+		$this->items = $this->get('Items');
+		$this->pagination = $this->get('Pagination');
+		$this->state = $this->get('State');
+		$this->user = JFactory::getUser();
+		// Add the list ordering clause.
+		$this->listOrder = $this->escape($this->state->get('list.ordering', 'a.id'));
+		$this->listDirn = $this->escape($this->state->get('list.direction', 'desc'));
+		$this->saveOrder = $this->listOrder == 'ordering';
+		// set the return here value
+		$this->return_here = urlencode(base64_encode((string) JUri::getInstance()));
+		// get global action permissions
+		$this->canDo = ComponentbuilderHelper::getActions('custom_code');
+		$this->canEdit = $this->canDo->get('custom_code.edit');
+		$this->canState = $this->canDo->get('custom_code.edit.state');
+		$this->canCreate = $this->canDo->get('custom_code.create');
+		$this->canDelete = $this->canDo->get('custom_code.delete');
+		$this->canBatch = $this->canDo->get('core.batch');
 
 		// We don't need toolbar in the modal window.
 		if ($this->getLayout() !== 'modal')
 		{
 			$this->addToolbar();
 			$this->sidebar = JHtmlSidebar::render();
-                        // load the batch html
-                        if ($this->canCreate && $this->canEdit && $this->canState)
-                        {
-                                $this->batchDisplay = JHtmlBatch_::render();
-                        }
+			// load the batch html
+			if ($this->canCreate && $this->canEdit && $this->canState)
+			{
+				$this->batchDisplay = JHtmlBatch_::render();
+			}
+		}
+		
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			throw new Exception(implode("\n", $errors), 500);
 		}
 
 		// Display the template
@@ -95,96 +80,101 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 	{
 		JToolBarHelper::title(JText::_('COM_COMPONENTBUILDER_CUSTOM_CODES'), 'shuffle');
 		JHtmlSidebar::setAction('index.php?option=com_componentbuilder&view=custom_codes');
-                JFormHelper::addFieldPath(JPATH_COMPONENT . '/models/fields');
+		JFormHelper::addFieldPath(JPATH_COMPONENT . '/models/fields');
 
 		if ($this->canCreate)
-                {
+		{
 			JToolBarHelper::addNew('custom_code.add');
 		}
 
-                // Only load if there are items
-                if (ComponentbuilderHelper::checkArray($this->items))
+		// Only load if there are items
+		if (ComponentbuilderHelper::checkArray($this->items))
 		{
-                        if ($this->canEdit)
-                        {
-                            JToolBarHelper::editList('custom_code.edit');
-                        }
+			if ($this->canEdit)
+			{
+				JToolBarHelper::editList('custom_code.edit');
+			}
 
-                        if ($this->canState)
-                        {
-                            JToolBarHelper::publishList('custom_codes.publish');
-                            JToolBarHelper::unpublishList('custom_codes.unpublish');
-                            JToolBarHelper::archiveList('custom_codes.archive');
+			if ($this->canState)
+			{
+				JToolBarHelper::publishList('custom_codes.publish');
+				JToolBarHelper::unpublishList('custom_codes.unpublish');
+				JToolBarHelper::archiveList('custom_codes.archive');
 
-                            if ($this->canDo->get('core.admin'))
-                            {
-                                JToolBarHelper::checkin('custom_codes.checkin');
-                            }
-                        }
+				if ($this->canDo->get('core.admin'))
+				{
+					JToolBarHelper::checkin('custom_codes.checkin');
+				}
+			}
 
-                        // Add a batch button
-                        if ($this->canBatch && $this->canCreate && $this->canEdit && $this->canState)
-                        {
-                                // Get the toolbar object instance
-                                $bar = JToolBar::getInstance('toolbar');
-                                // set the batch button name
-                                $title = JText::_('JTOOLBAR_BATCH');
-                                // Instantiate a new JLayoutFile instance and render the batch button
-                                $layout = new JLayoutFile('joomla.toolbar.batch');
-                                // add the button to the page
-                                $dhtml = $layout->render(array('title' => $title));
-                                $bar->appendButton('Custom', $dhtml, 'batch');
-                        } 
+			// Add a batch button
+			if ($this->canBatch && $this->canCreate && $this->canEdit && $this->canState)
+			{
+				// Get the toolbar object instance
+				$bar = JToolBar::getInstance('toolbar');
+				// set the batch button name
+				$title = JText::_('JTOOLBAR_BATCH');
+				// Instantiate a new JLayoutFile instance and render the batch button
+				$layout = new JLayoutFile('joomla.toolbar.batch');
+				// add the button to the page
+				$dhtml = $layout->render(array('title' => $title));
+				$bar->appendButton('Custom', $dhtml, 'batch');
+			}
 
-                        if ($this->state->get('filter.published') == -2 && ($this->canState && $this->canDelete))
-                        {
-                            JToolbarHelper::deleteList('', 'custom_codes.delete', 'JTOOLBAR_EMPTY_TRASH');
-                        }
-                        elseif ($this->canState && $this->canDelete)
-                        {
-                                JToolbarHelper::trash('custom_codes.trash');
-                        }
+			if ($this->state->get('filter.published') == -2 && ($this->canState && $this->canDelete))
+			{
+				JToolbarHelper::deleteList('', 'custom_codes.delete', 'JTOOLBAR_EMPTY_TRASH');
+			}
+			elseif ($this->canState && $this->canDelete)
+			{
+				JToolbarHelper::trash('custom_codes.trash');
+			}
 
 			if ($this->canDo->get('core.export') && $this->canDo->get('custom_code.export'))
 			{
 				JToolBarHelper::custom('custom_codes.exportData', 'download', '', 'COM_COMPONENTBUILDER_EXPORT_DATA', true);
 			}
-                }
+		}
+		if ($this->user->authorise('custom_code.run_expansion', 'com_componentbuilder'))
+		{
+			// add Run Expansion button.
+			JToolBarHelper::custom('custom_codes.runExpansion', 'expand-2 custom-button-runexpansion', '', 'COM_COMPONENTBUILDER_RUN_EXPANSION', false);
+		}
 
 		if ($this->canDo->get('core.import') && $this->canDo->get('custom_code.import'))
 		{
 			JToolBarHelper::custom('custom_codes.importData', 'upload', '', 'COM_COMPONENTBUILDER_IMPORT_DATA', false);
 		}
 
-                // set help url for this view if found
-                $help_url = ComponentbuilderHelper::getHelpUrl('custom_codes');
-                if (ComponentbuilderHelper::checkString($help_url))
-                {
-                        JToolbarHelper::help('COM_COMPONENTBUILDER_HELP_MANAGER', false, $help_url);
-                }
+		// set help url for this view if found
+		$help_url = ComponentbuilderHelper::getHelpUrl('custom_codes');
+		if (ComponentbuilderHelper::checkString($help_url))
+		{
+				JToolbarHelper::help('COM_COMPONENTBUILDER_HELP_MANAGER', false, $help_url);
+		}
 
-                // add the options comp button
-                if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
-                {
-                        JToolBarHelper::preferences('com_componentbuilder');
-                }
+		// add the options comp button
+		if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
+		{
+			JToolBarHelper::preferences('com_componentbuilder');
+		}
 
-                if ($this->canState)
-                {
+		if ($this->canState)
+		{
 			JHtmlSidebar::addFilter(
 				JText::_('JOPTION_SELECT_PUBLISHED'),
 				'filter_published',
 				JHtml::_('select.options', JHtml::_('jgrid.publishedOptions'), 'value', 'text', $this->state->get('filter.published'), true)
 			);
-                        // only load if batch allowed
-                        if ($this->canBatch)
-                        {
-                            JHtmlBatch_::addListSelection(
-                                JText::_('COM_COMPONENTBUILDER_KEEP_ORIGINAL_STATE'),
-                                'batch[published]',
-                                JHtml::_('select.options', JHtml::_('jgrid.publishedOptions', array('all' => false)), 'value', 'text', '', true)
-                            );
-                        }
+			// only load if batch allowed
+			if ($this->canBatch)
+			{
+				JHtmlBatch_::addListSelection(
+					JText::_('COM_COMPONENTBUILDER_KEEP_ORIGINAL_STATE'),
+					'batch[published]',
+					JHtml::_('select.options', JHtml::_('jgrid.publishedOptions', array('all' => false)), 'value', 'text', '', true)
+				);
+			}
 		}
 
 		JHtmlSidebar::addFilter(
@@ -196,15 +186,23 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 		if ($this->canBatch && $this->canCreate && $this->canEdit)
 		{
 			JHtmlBatch_::addListSelection(
-                                JText::_('COM_COMPONENTBUILDER_KEEP_ORIGINAL_ACCESS'),
-                                'batch[access]',
-                                JHtml::_('select.options', JHtml::_('access.assetgroups'), 'value', 'text')
+				JText::_('COM_COMPONENTBUILDER_KEEP_ORIGINAL_ACCESS'),
+				'batch[access]',
+				JHtml::_('select.options', JHtml::_('access.assetgroups'), 'value', 'text')
 			);
-                }  
+		}
 
 		// Set Component System Name Selection
-		$this->componentSystem_nameOptions = JFormHelper::loadFieldType('Component')->getOptions();
-		if ($this->componentSystem_nameOptions)
+		$this->componentSystem_nameOptions = JFormHelper::loadFieldType('Component')->options;
+		// We do some sanitation for Component System Name filter
+		if (ComponentbuilderHelper::checkArray($this->componentSystem_nameOptions) &&
+			isset($this->componentSystem_nameOptions[0]->value) &&
+			!ComponentbuilderHelper::checkString($this->componentSystem_nameOptions[0]->value))
+		{
+			unset($this->componentSystem_nameOptions[0]);
+		}
+		// Only load Component System Name filter if it has values
+		if (ComponentbuilderHelper::checkArray($this->componentSystem_nameOptions))
 		{
 			// Component System Name Filter
 			JHtmlSidebar::addFilter(
@@ -226,7 +224,15 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 
 		// Set Target Selection
 		$this->targetOptions = $this->getTheTargetSelections();
-		if ($this->targetOptions)
+		// We do some sanitation for Target filter
+		if (ComponentbuilderHelper::checkArray($this->targetOptions) &&
+			isset($this->targetOptions[0]->value) &&
+			!ComponentbuilderHelper::checkString($this->targetOptions[0]->value))
+		{
+			unset($this->targetOptions[0]);
+		}
+		// Only load Target filter if it has values
+		if (ComponentbuilderHelper::checkArray($this->targetOptions))
 		{
 			// Target Filter
 			JHtmlSidebar::addFilter(
@@ -248,7 +254,15 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 
 		// Set Type Selection
 		$this->typeOptions = $this->getTheTypeSelections();
-		if ($this->typeOptions)
+		// We do some sanitation for Type filter
+		if (ComponentbuilderHelper::checkArray($this->typeOptions) &&
+			isset($this->typeOptions[0]->value) &&
+			!ComponentbuilderHelper::checkString($this->typeOptions[0]->value))
+		{
+			unset($this->typeOptions[0]);
+		}
+		// Only load Type filter if it has values
+		if (ComponentbuilderHelper::checkArray($this->typeOptions))
 		{
 			// Type Filter
 			JHtmlSidebar::addFilter(
@@ -270,7 +284,15 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 
 		// Set Comment Type Selection
 		$this->comment_typeOptions = $this->getTheComment_typeSelections();
-		if ($this->comment_typeOptions)
+		// We do some sanitation for Comment Type filter
+		if (ComponentbuilderHelper::checkArray($this->comment_typeOptions) &&
+			isset($this->comment_typeOptions[0]->value) &&
+			!ComponentbuilderHelper::checkString($this->comment_typeOptions[0]->value))
+		{
+			unset($this->comment_typeOptions[0]);
+		}
+		// Only load Comment Type filter if it has values
+		if (ComponentbuilderHelper::checkArray($this->comment_typeOptions))
 		{
 			// Comment Type Filter
 			JHtmlSidebar::addFilter(
@@ -298,12 +320,15 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 	 */
 	protected function setDocument()
 	{
-		$document = JFactory::getDocument();
-		$document->setTitle(JText::_('COM_COMPONENTBUILDER_CUSTOM_CODES'));
-		$document->addStyleSheet(JURI::root() . "administrator/components/com_componentbuilder/assets/css/custom_codes.css");
+		if (!isset($this->document))
+		{
+			$this->document = JFactory::getDocument();
+		}
+		$this->document->setTitle(JText::_('COM_COMPONENTBUILDER_CUSTOM_CODES'));
+		$this->document->addStyleSheet(JURI::root() . "administrator/components/com_componentbuilder/assets/css/custom_codes.css", (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
 	}
 
-        /**
+	/**
 	 * Escapes a value for output in a view script.
 	 *
 	 * @param   mixed  $var  The output to escape.
@@ -314,10 +339,10 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 	{
 		if(strlen($var) > 50)
 		{
-                        // use the helper htmlEscape method instead and shorten the string
+			// use the helper htmlEscape method instead and shorten the string
 			return ComponentbuilderHelper::htmlEscape($var, $this->_charset, true);
 		}
-                // use the helper htmlEscape method instead.
+		// use the helper htmlEscape method instead.
 		return ComponentbuilderHelper::htmlEscape($var, $this->_charset);
 	}
 
@@ -329,7 +354,7 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 	protected function getSortFields()
 	{
 		return array(
-			'a.sorting' => JText::_('JGRID_HEADING_ORDERING'),
+			'ordering' => JText::_('JGRID_HEADING_ORDERING'),
 			'a.published' => JText::_('JSTATUS'),
 			'g.system_name' => JText::_('COM_COMPONENTBUILDER_CUSTOM_CODE_COMPONENT_LABEL'),
 			'a.path' => JText::_('COM_COMPONENTBUILDER_CUSTOM_CODE_PATH_LABEL'),
@@ -338,7 +363,7 @@ class ComponentbuilderViewCustom_codes extends JViewLegacy
 			'a.comment_type' => JText::_('COM_COMPONENTBUILDER_CUSTOM_CODE_COMMENT_TYPE_LABEL'),
 			'a.id' => JText::_('JGRID_HEADING_ID')
 		);
-	} 
+	}
 
 	protected function getTheTargetSelections()
 	{

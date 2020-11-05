@@ -1,25 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@package		Component Builder
-	@subpackage		componentbuilder.php
-	@author			Llewellyn van der Merwe <https://www.vdm.io/joomla-component-builder>
-	@my wife		Roline van der Merwe <http://www.vdm.io/>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2018 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -29,11 +17,19 @@ defined('_JEXEC') or die('Restricted access');
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
+use Joomla\Utilities\ArrayHelper;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 /**
  * ###Component### Import Model
  */
 class ###Component###ModelImport extends JModelLegacy
 {
+	// set uploading values
+	protected $use_streams = false;
+	protected $allow_unsafe = false;
+	protected $safeFileOptions = array();
+	
 	/**
 	 * @var object JTable object
 	 */
@@ -75,10 +71,6 @@ class ###Component###ModelImport extends JModelLegacy
 		// Recall the 'Import from Directory' path.
 		$path = $app->getUserStateFromRequest($this->_context . '.import_directory', 'import_directory', $app->get('tmp_path'));
 		$this->setState('import.directory', $path);
-		// set uploading values
-		$this->use_streams = false;
-		$this->allow_unsafe = false;
-		$this->safeFileOptions = array();
 		parent::populateState();
 	}
 
@@ -91,10 +83,10 @@ class ###Component###ModelImport extends JModelLegacy
 	public function import()
 	{
 		$this->setState('action', 'import');
-		$app 		= JFactory::getApplication();
-		$session 	= JFactory::getSession();
-		$package 	= null;
-		$continue	= false;
+		$app = JFactory::getApplication();
+		$session = JFactory::getSession();
+		$package = null;
+		$continue = false;
 		// get import type
 		$this->getType = $app->input->getString('gettype', NULL);
 		// get import type
@@ -149,7 +141,7 @@ class ###Component###ModelImport extends JModelLegacy
 		
 		// first link data to table headers
 		if(!$continue){
-			$package	= json_encode($package);
+			$package = json_encode($package);
 			$session->set('package', $package);
 			$session->set('dataType', $this->dataType);
 			$session->set('hasPackage', true);
@@ -201,8 +193,8 @@ class ###Component###ModelImport extends JModelLegacy
 	protected function _getPackageFromUpload()
 	{		
 		// Get the uploaded file information
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Do not change the filter type 'raw'. We need this to let files containing PHP code to upload. See JInputFiles::get.
 		$userfile = $input->files->get('import_package', null, 'raw');
@@ -229,9 +221,9 @@ class ###Component###ModelImport extends JModelLegacy
 		}
 
 		// Build the appropriate paths
-		$config		= JFactory::getConfig();
-		$tmp_dest	= $config->get('tmp_path') . '/' . $userfile['name'];
-		$tmp_src	= $userfile['tmp_name'];
+		$config = JFactory::getConfig();
+		$tmp_dest = $config->get('tmp_path') . '/' . $userfile['name'];
+		$tmp_src = $userfile['tmp_name'];
 
 		// Move uploaded file
 		jimport('joomla.filesystem.file');
@@ -262,8 +254,8 @@ class ###Component###ModelImport extends JModelLegacy
 	 */
 	protected function _getPackageFromFolder()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Get the path to the package to import
 		$p_dir = $input->getString('import_directory');
@@ -285,21 +277,16 @@ class ###Component###ModelImport extends JModelLegacy
 		}
 		
 		// check the extention
-		switch(strtolower(pathinfo($p_dir, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($p_dir))
+		{
+			// set error message
 			$app->enqueueMessage(JText::_('COM_###COMPONENT###_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
 		}
 		
 		$package['packagename'] = null;
-		$package['dir'] 		= $p_dir;
-		$package['type'] 		= $type;
+		$package['dir'] = $p_dir;
+		$package['type'] = $type;
 
 		return $package;
 	}
@@ -312,8 +299,8 @@ class ###Component###ModelImport extends JModelLegacy
 	 */
 	protected function _getPackageFromUrl()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 		
 		// Get the URL of the package to import
 		$url = $input->getString('import_url');
@@ -352,38 +339,32 @@ class ###Component###ModelImport extends JModelLegacy
 	 */
 	protected function check($archivename)
 	{
-		$app	= JFactory::getApplication();
+		$app = JFactory::getApplication();
 		// Clean the name
 		$archivename = JPath::clean($archivename);
 		
 		// check the extention
-		switch(strtolower(pathinfo($archivename, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($archivename))
+		{
 			// Cleanup the import files
 			$this->remove($archivename);
 			$app->enqueueMessage(JText::_('COM_###COMPONENT###_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
-		}	
+		}
 		
-		$config					= JFactory::getConfig();
+		$config = JFactory::getConfig();
 		// set Package Name
-		$check['packagename']	= $archivename;
+		$check['packagename'] = $archivename;
 		
 		// set directory
-		$check['dir']		= $config->get('tmp_path'). '/' .$archivename;
+		$check['dir'] = $config->get('tmp_path'). '/' .$archivename;
 		
 		// set type
-		$check['type']		= $this->getType;
+		$check['type'] = $this->getType;
 		
 		return $check;
-	}
-	
+	}###IMPORT_EXT_METHOD###
+
 	/**
 	 * Clean up temporary uploaded spreadsheet
 	 *
@@ -396,8 +377,8 @@ class ###Component###ModelImport extends JModelLegacy
 	{
 		jimport('joomla.filesystem.file');
 		
-		$config		= JFactory::getConfig();
-		$package	= $config->get('tmp_path'). '/' .$package;
+		$config = JFactory::getConfig();
+		$package = $config->get('tmp_path'). '/' .$package;
 
 		// Is the package file a valid file?
 		if (is_file($package))
@@ -409,263 +390,8 @@ class ###Component###ModelImport extends JModelLegacy
 			// It might also be just a base filename
 			JFile::delete(JPath::clean($package));
 		}
-	}
-	
-	/**
-	* Set the data from the spreadsheet to the database
-	*
-	* @param string  $package Paths to the uploaded package file
-	*
-	* @return  boolean false on failure
-	*
-	**/
-	protected function setData($package,$table,$target_headers)
-	{
-		if (###Component###Helper::checkArray($target_headers))
-		{
-			// make sure the file is loaded		
-			JLoader::import('PHPExcel', JPATH_COMPONENT_ADMINISTRATOR . '/helpers');
-			$jinput = JFactory::getApplication()->input;
-			foreach($target_headers as $header)
-			{
-				$data['target_headers'][$header] = $jinput->getString($header, null);
-			}
-			// set the data
-			if(isset($package['dir']))
-			{
-				$inputFileType = PHPExcel_IOFactory::identify($package['dir']);
-				$excelReader = PHPExcel_IOFactory::createReader($inputFileType);
-				$excelReader->setReadDataOnly(true);
-				$excelObj = $excelReader->load($package['dir']);
-				$data['array'] = $excelObj->getActiveSheet()->toArray(null, true,true,true);
-				$excelObj->disconnectWorksheets(); 
-				unset($excelObj);
-				return $this->save($data,$table);
-			}
-		}
-		return false;
-	}
-	
-	/**
-	* Save the data from the file to the database
-	*
-	* @param string  $package Paths to the uploaded package file
-	*
-	* @return  boolean false on failure
-	*
-	**/
-	protected function save($data,$table)
-	{
-		// import the data if there is any
-		if(###Component###Helper::checkArray($data['array']))
-		{
-			// get user object
-			$user  		= JFactory::getUser();
-			// remove header if it has headers
-			$id_key 	= $data['target_headers']['id'];
-			$published_key 	= $data['target_headers']['published'];
-			$ordering_key 	= $data['target_headers']['ordering'];
-			// get the first array set
-			$firstSet = reset($data['array']);
-            
-			// check if first array is a header array and remove if true
-			if($firstSet[$id_key] == 'id' || $firstSet[$published_key] == 'published' || $firstSet[$ordering_key] == 'ordering')
-			{
-				array_shift($data['array']);
-			}
-			
-			// make sure there is still values in array and that it was not only headers
-			if(###Component###Helper::checkArray($data['array']) && $user->authorise($table.'.import', 'com_###component###') && $user->authorise('core.import', 'com_###component###'))
-			{
-				// set target.
-				$target	= array_flip($data['target_headers']);
-				// Get a db connection.
-				$db = JFactory::getDbo();
-				// set some defaults
-				$todayDate		= JFactory::getDate()->toSql();
-				// get global action permissions
-				$canDo			= ###Component###Helper::getActions($table);
-				$canEdit		= $canDo->get('core.edit');
-				$canState		= $canDo->get('core.edit.state');
-				$canCreate		= $canDo->get('core.create');
-				$hasAlias		= $this->getAliasesUsed($table);
-				// prosses the data
-				foreach($data['array'] as $row)
-				{
-					$found = false;
-					if (isset($row[$id_key]) && is_numeric($row[$id_key]) && $row[$id_key] > 0)
-					{
-						// raw items import & update!
-						$query = $db->getQuery(true);
-						$query
-							->select('version')
-							->from($db->quoteName('#__###component###_'.$table))
-							->where($db->quoteName('id') . ' = '. $db->quote($row[$id_key]));
-						// Reset the query using our newly populated query object.
-						$db->setQuery($query);
-						$db->execute();
-						$found = $db->getNumRows();
-					}
-					
-					if($found && $canEdit)
-					{
-						// update item
-						$id 		= $row[$id_key];
-						$version	= $db->loadResult();
-						// reset all buckets
-						$query 		= $db->getQuery(true);
-						$fields 	= array();
-						// Fields to update.
-						foreach($row as $key => $cell)
-						{
-							// ignore column
-							if ('IGNORE' == $target[$key])
-							{
-								continue;
-							}
-							// update modified
-							if ('modified_by' == $target[$key])
-							{
-								continue;
-							}
-							// update modified
-							if ('modified' == $target[$key])
-							{
-								continue;
-							}
-							// update version
-							if ('version' == $target[$key])
-							{
-								$cell = (int) $version + 1;
-							}
-							// verify publish authority
-							if ('published' == $target[$key] && !$canState)
-							{
-								continue;
-							}
-							// set to update array
-							if(in_array($key, $data['target_headers']) && is_numeric($cell))
-							{
-								$fields[] = $db->quoteName($target[$key]) . ' = ' . $cell;
-							}
-							elseif(in_array($key, $data['target_headers']) && is_string($cell))
-							{
-								$fields[] = $db->quoteName($target[$key]) . ' = ' . $db->quote($cell);
-							}
-							elseif(in_array($key, $data['target_headers']) && is_null($cell))
-							{
-								// if import data is null then set empty
-								$fields[] = $db->quoteName($target[$key]) . " = ''";
-							}
-						}
-						// load the defaults
-						$fields[]	= $db->quoteName('modified_by') . ' = ' . $db->quote($user->id);
-						$fields[]	= $db->quoteName('modified') . ' = ' . $db->quote($todayDate);
-						// Conditions for which records should be updated.
-						$conditions = array(
-							$db->quoteName('id') . ' = ' . $id
-						);
-						 
-						$query->update($db->quoteName('#__###component###_'.$table))->set($fields)->where($conditions);
-						$db->setQuery($query);
-						$db->execute();
-					}
-					elseif ($canCreate)
-					{
-						// insert item
-						$query = $db->getQuery(true);
-						// reset all buckets
-						$columns 	= array();
-						$values 	= array();
-						$version	= false;
-						// Insert columns. Insert values.
-						foreach($row as $key => $cell)
-						{
-							// ignore column
-							if ('IGNORE' == $target[$key])
-							{
-								continue;
-							}
-							// remove id
-							if ('id' == $target[$key])
-							{
-								continue;
-							}
-							// update created
-							if ('created_by' == $target[$key])
-							{
-								continue;
-							}
-							// update created
-							if ('created' == $target[$key])
-							{
-								continue;
-							}
-							// Make sure the alias is incremented
-							if ('alias' == $target[$key])
-							{
-								$cell = $this->getAlias($cell,$table);
-							}
-							// update version
-							if ('version' == $target[$key])
-							{
-								$cell = 1;
-								$version = true;
-							}
-							// set to insert array
-							if(in_array($key, $data['target_headers']) && is_numeric($cell))
-							{
-								$columns[] 	= $target[$key];
-								$values[] 	= $cell;
-							}
-							elseif(in_array($key, $data['target_headers']) && is_string($cell))
-							{
-								$columns[] 	= $target[$key];
-								$values[] 	= $db->quote($cell);
-							}
-							elseif(in_array($key, $data['target_headers']) && is_null($cell))
-							{
-								// if import data is null then set empty
-								$columns[] 	= $target[$key];
-								$values[] 	= "''";
-							}
-						}
-						// load the defaults
-						$columns[] 	= 'created_by';
-						$values[] 	= $db->quote($user->id);
-						$columns[] 	= 'created';
-						$values[] 	= $db->quote($todayDate);
-						if (!$version)
-						{
-							$columns[] 	= 'version';
-							$values[] 	= 1;
-						}
-						// Prepare the insert query.
-						$query
-							->insert($db->quoteName('#__###component###_'.$table))
-							->columns($db->quoteName($columns))
-							->values(implode(',', $values));
-						// Set the query using our newly populated query object and execute it.
-						$db->setQuery($query);
-						$done = $db->execute();
-						if ($done)
-						{
-							$aId = $db->insertid();
-							// make sure the access of asset is set
-							###Component###Helper::setAsset($aId,$table);
-						}
-					}
-					else
-					{
-						return false;
-					}
-				}
-				return true;
-			}
-		}
-		return false;
-	}
-	
+	}###IMPORT_SETDATA_METHOD######IMPORT_SAVE_METHOD###
+
 	protected function getAlias($name,$type = false)
 	{
 		// sanitize the name to an alias

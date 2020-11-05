@@ -1,27 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 6 of this MVC
-	@build			17th October, 2016
-	@created		4th March, 2016
-	@package		Component Builder
-	@subpackage		edit.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -31,7 +17,7 @@ JHtml::_('behavior.tooltip');
 JHtml::_('behavior.formvalidation');
 JHtml::_('formbehavior.chosen', 'select');
 JHtml::_('behavior.keepalive');
-$componentParams = JComponentHelper::getParams('com_componentbuilder');
+$componentParams = $this->params; // will be removed just use $this->params instead
 ?>
 <script type="text/javascript">
 	// waiting spinner
@@ -56,9 +42,10 @@ $componentParams = JComponentHelper::getParams('com_componentbuilder');
 	});
 </script>
 <div id="componentbuilder_loader" style="display: none;">
-<form action="<?php echo JRoute::_('index.php?option=com_componentbuilder&layout=edit&id='.(int) $this->item->id.$this->referral); ?>" method="post" name="adminForm" id="adminForm" class="form-validate" enctype="multipart/form-data">
+<form action="<?php echo JRoute::_('index.php?option=com_componentbuilder&layout=edit&id='. (int) $this->item->id . $this->referral); ?>" method="post" name="adminForm" id="adminForm" class="form-validate" enctype="multipart/form-data">
 
-	<?php echo JLayoutHelper::render('help_document.details_above', $this); ?><div class="form-horizontal">
+	<?php echo JLayoutHelper::render('help_document.details_above', $this); ?>
+<div class="form-horizontal">
 
 	<?php echo JHtml::_('bootstrap.startTabSet', 'help_documentTab', array('active' => 'details')); ?>
 
@@ -78,7 +65,11 @@ $componentParams = JComponentHelper::getParams('com_componentbuilder');
 		</div>
 	<?php echo JHtml::_('bootstrap.endTab'); ?>
 
-	<?php if ($this->canDo->get('help_document.delete') || $this->canDo->get('core.edit.created_by') || $this->canDo->get('help_document.edit.state') || $this->canDo->get('core.edit.created')) : ?>
+	<?php $this->ignore_fieldsets = array('details','metadata','vdmmetadata','accesscontrol'); ?>
+	<?php $this->tab_name = 'help_documentTab'; ?>
+	<?php echo JLayoutHelper::render('joomla.edit.params', $this); ?>
+
+	<?php if ($this->canDo->get('core.edit.created_by') || $this->canDo->get('core.edit.created') || $this->canDo->get('help_document.edit.state') || ($this->canDo->get('help_document.delete') && $this->canDo->get('help_document.edit.state'))) : ?>
 	<?php echo JHtml::_('bootstrap.addTab', 'help_documentTab', 'publishing', JText::_('COM_COMPONENTBUILDER_HELP_DOCUMENT_PUBLISHING', true)); ?>
 		<div class="row-fluid form-horizontal-desktop">
 			<div class="span6">
@@ -125,93 +116,93 @@ $componentParams = JComponentHelper::getParams('com_componentbuilder');
 
 <script type="text/javascript">
 
-// #jform_location listeners for location_vvvvwac function
+// #jform_location listeners for location_vvvvwei function
 jQuery('#jform_location').on('keyup',function()
 {
-	var location_vvvvwac = jQuery("#jform_location input[type='radio']:checked").val();
-	vvvvwac(location_vvvvwac);
+	var location_vvvvwei = jQuery("#jform_location input[type='radio']:checked").val();
+	vvvvwei(location_vvvvwei);
 
 });
 jQuery('#adminForm').on('change', '#jform_location',function (e)
 {
 	e.preventDefault();
-	var location_vvvvwac = jQuery("#jform_location input[type='radio']:checked").val();
-	vvvvwac(location_vvvvwac);
+	var location_vvvvwei = jQuery("#jform_location input[type='radio']:checked").val();
+	vvvvwei(location_vvvvwei);
 
 });
 
-// #jform_location listeners for location_vvvvwad function
+// #jform_location listeners for location_vvvvwej function
 jQuery('#jform_location').on('keyup',function()
 {
-	var location_vvvvwad = jQuery("#jform_location input[type='radio']:checked").val();
-	vvvvwad(location_vvvvwad);
+	var location_vvvvwej = jQuery("#jform_location input[type='radio']:checked").val();
+	vvvvwej(location_vvvvwej);
 
 });
 jQuery('#adminForm').on('change', '#jform_location',function (e)
 {
 	e.preventDefault();
-	var location_vvvvwad = jQuery("#jform_location input[type='radio']:checked").val();
-	vvvvwad(location_vvvvwad);
+	var location_vvvvwej = jQuery("#jform_location input[type='radio']:checked").val();
+	vvvvwej(location_vvvvwej);
 
 });
 
-// #jform_type listeners for type_vvvvwae function
+// #jform_type listeners for type_vvvvwek function
 jQuery('#jform_type').on('keyup',function()
 {
-	var type_vvvvwae = jQuery("#jform_type").val();
-	vvvvwae(type_vvvvwae);
+	var type_vvvvwek = jQuery("#jform_type").val();
+	vvvvwek(type_vvvvwek);
 
 });
 jQuery('#adminForm').on('change', '#jform_type',function (e)
 {
 	e.preventDefault();
-	var type_vvvvwae = jQuery("#jform_type").val();
-	vvvvwae(type_vvvvwae);
+	var type_vvvvwek = jQuery("#jform_type").val();
+	vvvvwek(type_vvvvwek);
 
 });
 
-// #jform_type listeners for type_vvvvwaf function
+// #jform_type listeners for type_vvvvwel function
 jQuery('#jform_type').on('keyup',function()
 {
-	var type_vvvvwaf = jQuery("#jform_type").val();
-	vvvvwaf(type_vvvvwaf);
+	var type_vvvvwel = jQuery("#jform_type").val();
+	vvvvwel(type_vvvvwel);
 
 });
 jQuery('#adminForm').on('change', '#jform_type',function (e)
 {
 	e.preventDefault();
-	var type_vvvvwaf = jQuery("#jform_type").val();
-	vvvvwaf(type_vvvvwaf);
+	var type_vvvvwel = jQuery("#jform_type").val();
+	vvvvwel(type_vvvvwel);
 
 });
 
-// #jform_type listeners for type_vvvvwag function
+// #jform_type listeners for type_vvvvwem function
 jQuery('#jform_type').on('keyup',function()
 {
-	var type_vvvvwag = jQuery("#jform_type").val();
-	vvvvwag(type_vvvvwag);
+	var type_vvvvwem = jQuery("#jform_type").val();
+	vvvvwem(type_vvvvwem);
 
 });
 jQuery('#adminForm').on('change', '#jform_type',function (e)
 {
 	e.preventDefault();
-	var type_vvvvwag = jQuery("#jform_type").val();
-	vvvvwag(type_vvvvwag);
+	var type_vvvvwem = jQuery("#jform_type").val();
+	vvvvwem(type_vvvvwem);
 
 });
 
-// #jform_target listeners for target_vvvvwah function
+// #jform_target listeners for target_vvvvwen function
 jQuery('#jform_target').on('keyup',function()
 {
-	var target_vvvvwah = jQuery("#jform_target input[type='radio']:checked").val();
-	vvvvwah(target_vvvvwah);
+	var target_vvvvwen = jQuery("#jform_target input[type='radio']:checked").val();
+	vvvvwen(target_vvvvwen);
 
 });
 jQuery('#adminForm').on('change', '#jform_target',function (e)
 {
 	e.preventDefault();
-	var target_vvvvwah = jQuery("#jform_target input[type='radio']:checked").val();
-	vvvvwah(target_vvvvwah);
+	var target_vvvvwen = jQuery("#jform_target input[type='radio']:checked").val();
+	vvvvwen(target_vvvvwen);
 
 });
 

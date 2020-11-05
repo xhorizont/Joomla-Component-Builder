@@ -1,33 +1,16 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 46 of this MVC
-	@build			3rd March, 2017
-	@created		1st February, 2017
-	@package		Component Builder
-	@subpackage		view.html.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
-
-// import Joomla view library
-jimport('joomla.application.component.view');
 
 /**
  * Componentbuilder View class for the Compiler
@@ -37,23 +20,16 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 	// Overwriting JView display method
 	function display($tpl = null)
 	{
-                // get component params
-		$this->params	= JComponentHelper::getParams('com_componentbuilder');
+		// get component params
+		$this->params = JComponentHelper::getParams('com_componentbuilder');
 		// get the application
-		$this->app	= JFactory::getApplication();
+		$this->app = JFactory::getApplication();
 		// get the user object
 		$this->user	= JFactory::getUser();
-                // get global action permissions
-		$this->canDo	= ComponentbuilderHelper::getActions('compiler');
+		// get global action permissions
+		$this->canDo = ComponentbuilderHelper::getActions('compiler');
 		// Initialise variables.
-		$this->items	= $this->get('Items');
-
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			JError::raiseError(500, implode(PHP_EOL, $errors));
-			return false;
-		}
+		$this->items = $this->get('Items');
 		if ($this->getLayout() !== 'modal')
 		{
 			// Include helper submenu
@@ -74,73 +50,122 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 		// set the document
 		$this->setDocument();
 
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			throw new Exception(implode(PHP_EOL, $errors), 500);
+		}
+
 		parent::display($tpl);
 	}
 
+	// These are subform layouts used in JCB
+	// JLayoutHelper::render('sectionjcb', [?]); // added to ensure the layout is loaded
+	// JLayoutHelper::render('repeatablejcb', [?]); // added to ensure the layout is loaded
+
 	public function setForm()
 	{		
-		if(ComponentbuilderHelper::checkArray($this->Components)){
-			jimport('joomla.form.form');
-			
-			$radio1 = JFormHelper::loadFieldType('radio',true);
-			// start building add to sales folder xml field
-			$xml = '<field label="'.JText::_('COM_COMPONENTBUILDER_ADD_TO_BACKUP_FOLDER_AMP_SALES_SERVER_LTSMALLGTIF_SETLTSMALLGT').'" description="'.JText::_('COM_COMPONENTBUILDER_SHOULD_THE_ZIPPED_PACKAGE_OF_THE_COMPONENT_BE_MOVED_TO_THE_LOCAL_BACKUP_AND_REMOTE_SALES_SERVER_THIS_IS_ONLY_APPLICABLE_IF_THIS_COMPONENT_HAS_THOSE_VALUES_SET').'" name="backup" type="radio" class="btn-group btn-group-yesno" default="0">';
-			$xml .= '<option value="1">'.JText::_('COM_COMPONENTBUILDER_YES').'</option> <option value="0">'.JText::_('COM_COMPONENTBUILDER_NO').'</option>';
-			$xml .= "</field>";
-			// prepare the xml
-			$sales = new SimpleXMLElement($xml);
-			// set components to form
-			$radio1->setup($sales,0);
-			
-			$radio2 = JFormHelper::loadFieldType('radio',true);
-			// start building add to git folder xml field
-			$xml = '<field label="'.JText::_('COM_COMPONENTBUILDER_ADD_TO_GIT_FOLDER').'" description="'.JText::_('COM_COMPONENTBUILDER_SHOULD_THE_COMPONENT_BE_MOVED_TO_YOUR_LOCAL_GIT_FOLDER').'" name="git" type="radio" class="btn-group btn-group-yesno" default="1">';
-			$xml .= '<option value="1">'.JText::_('COM_COMPONENTBUILDER_YES').'</option> <option value="0">'.JText::_('COM_COMPONENTBUILDER_NO').'</option>';
-			$xml .= "</field>";
-			// prepare the xml
-			$git = new SimpleXMLElement($xml);
-			// set components to form
-			$radio2->setup($git,1);
-			
-			$radio3 = JFormHelper::loadFieldType('radio',true);
-			// start building add to git folder xml field
-			$xml = '<field label="'.JText::_('COM_COMPONENTBUILDER_ADD_CUSTOM_CODE_PLACEHOLDERS').'" description="'.JText::_('COM_COMPONENTBUILDER_SHOULD_JCB_INSERT_THE_CUSTOM_CODE_PLACEHOLDERS_THIS_IS_ONLY_APPLICABLE_IF_THIS_COMPONENT_HAS_CUSTOM_CODE').'" name="placeholders" type="radio" class="btn-group btn-group-yesno" default="2">';
-			$xml .= '<option value="2">'.JText::_('COM_COMPONENTBUILDER_GLOBAL').'</option> <option value="1">'.JText::_('COM_COMPONENTBUILDER_YES').'</option> <option value="0">'.JText::_('COM_COMPONENTBUILDER_NO').'</option>';
-			$xml .= "</field>";
-			// prepare the xml
-			$placeholder = new SimpleXMLElement($xml);
-			// set components to form
-			$radio3->setup($placeholder,2);
-			
-			$radio4 = JFormHelper::loadFieldType('radio',true);
-			// start building add to git folder xml field
-			$xml = '<field label="'.JText::_('COM_COMPONENTBUILDER_DEBUG_LINE_NUMBERS').'" description="'.JText::_('COM_COMPONENTBUILDER_ADD_CORRESPONDING_LINE_NUMBERS_TO_THE_DYNAMIC_COMMENTS_SO_TO_SEE_WHERE_IN_THE_COMPILER_THE_LINES_OF_CODE_WAS_BUILD_THIS_WILL_HELP_IF_YOU_NEED_TO_GET_MORE_TECHNICAL_WITH_AN_ISSUE_ON_GITHUB').'" name="debuglinenr" type="radio" class="btn-group btn-group-yesno" default="2">';
-			$xml .= '<option value="2">'.JText::_('COM_COMPONENTBUILDER_GLOBAL').'</option> <option value="1">'.JText::_('COM_COMPONENTBUILDER_YES').'</option> <option value="0">'.JText::_('COM_COMPONENTBUILDER_NO').'</option>';
-			$xml .= "</field>";
-			// prepare the xml
-			$debug_linenr = new SimpleXMLElement($xml);
-			// set components to form
-			$radio4->setup($debug_linenr,2);
-			
-			$list = JFormHelper::loadFieldType('list',true);
-			// start building componet xml field
-			$xml = '<field label="'.JText::_('COM_COMPONENTBUILDER_COMPONENTS').'" description="'.JText::_('COM_COMPONENTBUILDER_SELECT_THE_COMPONENT_TO_COMPILE').'" name="component" type="list" class="btn-group" required="true">';
-			$xml .= '<option value="">'.JText::_('COM_COMPONENTBUILDER__SELECT_COMPONENT_').'</option>';
-			foreach($this->Components as $componet){
-				$xml .= '<option value="'.$componet->id.'">'.$this->escape($componet->name).'</option>';
+		if(ComponentbuilderHelper::checkArray($this->Components))
+		{
+			// start the form
+			$form = array();
+			// sales attributes
+			$attributes = array(
+				'type' => 'radio',
+				'name' => 'backup',
+				'label' => 'COM_COMPONENTBUILDER_ADD_TO_BACKUP_FOLDER_AMP_SALES_SERVER_SMALLIF_SETSMALL',
+				'class' => 'btn-group btn-group-yesno',
+				'description' => 'COM_COMPONENTBUILDER_SHOULD_THE_ZIPPED_PACKAGE_OF_THE_COMPONENT_BE_MOVED_TO_THE_LOCAL_BACKUP_AND_REMOTE_SALES_SERVER_THIS_IS_ONLY_APPLICABLE_IF_THIS_COMPONENT_HAS_THOSE_VALUES_SET',
+				'default' => '0');
+			// set the sales options
+			$options = array(
+				'1' => 'COM_COMPONENTBUILDER_YES',
+				'0' => 'COM_COMPONENTBUILDER_NO');
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, 0, $options);
+			// repository attributes
+			$attributes = array(
+				'type' => 'radio',
+				'name' => 'repository',
+				'label' => 'COM_COMPONENTBUILDER_ADD_TO_REPOSITORY_FOLDER',
+				'class' => 'btn-group btn-group-yesno',
+				'description' => 'COM_COMPONENTBUILDER_SHOULD_THE_COMPONENT_BE_MOVED_TO_YOUR_LOCAL_REPOSITORY_FOLDER',
+				'default' => '1');
+			// start the repository options
+			$options = array(
+				'1' => 'COM_COMPONENTBUILDER_YES',
+				'0' => 'COM_COMPONENTBUILDER_NO');
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, 1, $options);
+			// placeholders attributes
+			$attributes = array(
+				'type' => 'radio',
+				'name' => 'placeholders',
+				'label' => 'COM_COMPONENTBUILDER_ADD_CUSTOM_CODE_PLACEHOLDERS',
+				'class' => 'btn-group btn-group-yesno',
+				'description' => 'COM_COMPONENTBUILDER_SHOULD_JCB_INSERT_THE_CUSTOM_CODE_PLACEHOLDERS_THIS_IS_ONLY_APPLICABLE_IF_THIS_COMPONENT_HAS_CUSTOM_CODE',
+				'default' => '2');
+			// start the placeholders options
+			$options = array(
+				'2' => 'COM_COMPONENTBUILDER_GLOBAL',
+				'1' => 'COM_COMPONENTBUILDER_YES',
+				'0' => 'COM_COMPONENTBUILDER_NO');
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, 2, $options);
+			// debuglinenr attributes
+			$attributes = array(
+				'type' => 'radio',
+				'name' => 'debuglinenr',
+				'label' => 'COM_COMPONENTBUILDER_DEBUG_LINE_NUMBERS',
+				'class' => 'btn-group btn-group-yesno',
+				'description' => 'COM_COMPONENTBUILDER_ADD_CORRESPONDING_LINE_NUMBERS_TO_THE_DYNAMIC_COMMENTS_SO_TO_SEE_WHERE_IN_THE_COMPILER_THE_LINES_OF_CODE_WAS_BUILD_THIS_WILL_HELP_IF_YOU_NEED_TO_GET_MORE_TECHNICAL_WITH_AN_ISSUE_ON_GITHUB_OR_EVEN_FOR_YOUR_OWN_DEBUGGING',
+				'default' => '2');
+			$options = array(
+				'2' => 'COM_COMPONENTBUILDER_GLOBAL',
+				'1' => 'COM_COMPONENTBUILDER_YES',
+				'0' => 'COM_COMPONENTBUILDER_NO');
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, 2, $options);
+			// minify attributes
+			$attributes = array(
+				'type' => 'radio',
+				'name' => 'minify',
+				'label' => 'COM_COMPONENTBUILDER_MINIFY_JAVASCRIPT',
+				'class' => 'btn-group btn-group-yesno',
+				'description' => 'COM_COMPONENTBUILDER_SHOULD_THE_JAVASCRIPT_BE_MINIFIED_IN_THE_COMPONENT',
+				'default' => '2');
+			$options = array(
+				'2' => 'COM_COMPONENTBUILDER_GLOBAL',
+				'1' => 'COM_COMPONENTBUILDER_YES',
+				'0' => 'COM_COMPONENTBUILDER_NO');
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, 2, $options);
+			// component attributes
+			$attributes = array(
+				'type' => 'list',
+				'name' => 'component',
+				'label' => 'COM_COMPONENTBUILDER_COMPONENTS',
+				'class' => 'list_class',
+				'description' => 'COM_COMPONENTBUILDER_SELECT_THE_COMPONENT_TO_COMPILE',
+				'required' => 'true');
+			// start the component options
+			$options = array();
+			$options[''] = 'COM_COMPONENTBUILDER__SELECT_COMPONENT_';
+			// load component options from array
+			foreach($this->Components as $componet)
+			{
+				$options[(int) $componet->id] = $this->escape($componet->name);
 			}
-			$xml .= "</field>";
-			// prepare the xml
-			$componets = new SimpleXMLElement($xml);
-			// set components to form
-			$list->setup($componets,0);
-						
-			return array($radio1,$radio2,$radio3,$radio4,$list);
+			// add to form
+			$form[] = ComponentbuilderHelper::getFieldObject($attributes, '', $options);
+
+			// return the form array
+			return $form;
 		}
 		return false;
 	}
 
-        /**
+	/**
 	 * Prepares the document
 	 */
 	protected function setDocument()
@@ -151,7 +176,7 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 		// Load the header checker class.
 		require_once( JPATH_COMPONENT_ADMINISTRATOR.'/helpers/headercheck.php' );
 		// Initialize the header checker.
-		$HeaderCheck = new HeaderCheck;
+		$HeaderCheck = new componentbuilderHeaderCheck;
 
 		// Load uikit options.
 		$uikit = $this->params->get('uikit_load');
@@ -163,16 +188,38 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 		// The uikit css.
 		if ((!$HeaderCheck->css_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
 		{
-			$this->document->addStyleSheet(JURI::root(true) .'/media/com_componentbuilder/uikit/css/uikit'.$style.$size.'.css');
+			$this->document->addStyleSheet(JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/uikit'.$style.$size.'.css', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
 		}
 		// The uikit js.
 		if ((!$HeaderCheck->js_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
 		{
-			$this->document->addScript(JURI::root(true) .'/media/com_componentbuilder/uikit/js/uikit'.$size.'.js');
+			$this->document->addScript(JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/uikit'.$size.'.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript');
+		}
+
+		// Load the script to find all uikit components needed.
+		if ($uikit != 2)
+		{
+			// Set the default uikit components in this view.
+			$uikitComp = array();
+			$uikitComp[] = 'data-uk-grid';
+
+			// Get field uikit components needed in this view.
+			$uikitFieldComp = $this->get('UikitComp');
+			if (isset($uikitFieldComp) && ComponentbuilderHelper::checkArray($uikitFieldComp))
+			{
+				if (isset($uikitComp) && ComponentbuilderHelper::checkArray($uikitComp))
+				{
+					$uikitComp = array_merge($uikitComp, $uikitFieldComp);
+					$uikitComp = array_unique($uikitComp);
+				}
+				else
+				{
+					$uikitComp = $uikitFieldComp;
+				}
+			}
 		}
 
 		// Load the needed uikit components in this view.
-		$uikitComp = $this->get('UikitComp');
 		if ($uikit != 2 && isset($uikitComp) && ComponentbuilderHelper::checkArray($uikitComp))
 		{
 			// load just in case.
@@ -183,43 +230,37 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 				foreach (ComponentbuilderHelper::$uk_components[$class] as $name)
 				{
 					// check if the CSS file exists.
-					if (JFile::exists(JPATH_ROOT.'/media/com_componentbuilder/uikit/css/components/'.$name.$style.$size.'.css'))
+					if (JFile::exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css'))
 					{
 						// load the css.
-						$this->document->addStyleSheet(JURI::root(true) .'/media/com_componentbuilder/uikit/css/components/'.$name.$style.$size.'.css');
+						$this->document->addStyleSheet(JURI::root(true) .'/media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
 					}
 					// check if the JavaScript file exists.
-					if (JFile::exists(JPATH_ROOT.'/media/com_componentbuilder/uikit/js/components/'.$name.$size.'.js'))
+					if (JFile::exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js'))
 					{
 						// load the js.
-						$this->document->addScript(JURI::root(true) .'/media/com_componentbuilder/uikit/js/components/'.$name.$size.'.js', 'text/javascript', true);
+						$this->document->addScript(JURI::root(true) .'/media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/javascript', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('type' => 'text/javascript', 'async' => 'async') : true);
 					}
 				}
 			}
-		}   
+		}
 		// add marked library
 		$this->document->addScript(JURI::root() . "administrator/components/com_componentbuilder/custom/marked.js");
-                // add the document default css file
-		$this->document->addStyleSheet(JURI::root(true) .'/administrator/components/com_componentbuilder/assets/css/compiler.css');
-		// Set the Custom CSS script to view
-		$this->document->addStyleDeclaration("
-			.j-sidebar-container {
-			margin: -28px 0 0 -1px !important;
-			}
-		"); 
+		// add the document default css file
+		$this->document->addStyleSheet(JURI::root(true) .'/administrator/components/com_componentbuilder/assets/css/compiler.css', (ComponentbuilderHelper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');
 		// Set the Custom JS script to view
 		$this->document->addScriptDeclaration("
 			function getComponentDetails_server(id){
-				var getUrl = JRouter(\"index.php?option=com_componentbuilder&task=ajax.getComponentDetails&format=json\");
+				var getUrl = JRouter(\"index.php?option=com_componentbuilder&task=ajax.getComponentDetails&format=json&raw=true\");
 				if(token.length > 0 && id > 0){
-					var request = 'token='+token+'&id='+id;
+					var request = token+'=1&id='+id;
 				}
 				return jQuery.ajax({
 					type: 'GET',
 					url: getUrl,
-					dataType: 'jsonp',
+					dataType: 'json',
 					data: request,
-					jsonp: 'callback'
+					jsonp: false
 				});
 			}
 			function getComponentDetails(id) {
@@ -229,7 +270,9 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 					}
 				});
 			}
-			var noticeboard = \"https://www.vdm.io/componentbuilder-noticeboard-md\";
+			
+			var noticeboard = \"https://vdm.bz/componentbuilder-noticeboard-md\";
+			var proboard = \"https://vdm.bz/componentbuilder-pro-noticeboard-md\";
 			jQuery(document).ready(function () {
 				jQuery.get(noticeboard)
 				.success(function(board) { 
@@ -242,33 +285,45 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 							}
 						});
 					} else {
-						jQuery(\"#noticeboard-md\").html(\"'.JText::_('COM_COMPONENTBUILDER_ALL_IS_GOOD_THERE_IN_NO_NOTICE_AT_THIS_TIME').'\");
+						jQuery(\"#noticeboard-md\").html(all_is_good);
 					}
 				})
 				.error(function(jqXHR, textStatus, errorThrown) { 
-					jQuery(\"#noticeboard-md\").html(\"'.JText::_('COM_COMPONENTBUILDER_ALL_IS_GOOD_THERE_IN_NO_NOTICE_AT_THIS_TIME').'\");
+					jQuery(\"#noticeboard-md\").html(all_is_good);
+				});
+				jQuery.get(proboard)
+				.success(function(board) { 
+					if (board.length > 5) {
+						jQuery(\"#proboard-md\").html(marked(board));
+					} else {
+						jQuery(\"#proboard-md\").html(all_is_good);
+					}
+				})
+				.error(function(jqXHR, textStatus, errorThrown) { 
+					jQuery(\"#proboard-md\").html(all_is_good);
 				});
 			});
 			// to check is READ/NEW
 			function getIS(type,notice){
 				if (type == 1) {
-					var getUrl = \"index.php?option=com_componentbuilder&task=ajax.isNew&format=json\";
+					var getUrl = JRouter(\"index.php?option=com_componentbuilder&task=ajax.isNew&format=json&raw=true\");
 				} else if (type == 2) {
-					var getUrl = \"index.php?option=com_componentbuilder&task=ajax.isRead&format=json\";
+					var getUrl = JRouter(\"index.php?option=com_componentbuilder&task=ajax.isRead&format=json&raw=true\");
 				}	
 				if(token.length > 0 && notice.length){
-					var request = \"token=\"+token+\"&notice=\"+notice;
+					var request = token+\"=1&notice=\"+notice;
 				}
 				return jQuery.ajax({
 					type: \"POST\",
 					url: getUrl,
-					dataType: \"jsonp\",
+					dataType: 'json',
 					data: request,
-					jsonp: \"callback\"
+					jsonp: false
 				});
 			}
+			
 		");
-        }
+	}
 
 	/**
 	 * Setting the toolbar
@@ -276,34 +331,42 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 	protected function addToolBar()
 	{
 		// hide the main menu
-                $this->app->input->set('hidemainmenu', true);
+		$this->app->input->set('hidemainmenu', true);
 		// add title to the page
 		JToolbarHelper::title(JText::_('COM_COMPONENTBUILDER_COMPILER'),'cogs');
-                // add the back button
-                // JToolBarHelper::custom('compiler.back', 'undo-2', '', 'COM_COMPONENTBUILDER_BACK', false);
-                // add cpanel button
+		// add cpanel button
 		JToolBarHelper::custom('compiler.dashboard', 'grid-2', '', 'COM_COMPONENTBUILDER_DASH', false);
+		if ($this->canDo->get('compiler.run_expansion'))
+		{
+			// add Run Expansion button.
+			JToolBarHelper::custom('compiler.runExpansion', 'expand-2 custom-button-runexpansion', '', 'COM_COMPONENTBUILDER_RUN_EXPANSION', false);
+		}
+		if ($this->canDo->get('compiler.translate'))
+		{
+			// add Translate button.
+			JToolBarHelper::custom('compiler.runTranslator', 'comments-2 custom-button-runtranslator', '', 'COM_COMPONENTBUILDER_TRANSLATE', false);
+		}
 		if ($this->canDo->get('compiler.clear_tmp'))
 		{
 			// add Clear tmp button.
-			JToolBarHelper::custom('compiler.clearTmp', 'purge', '', 'COM_COMPONENTBUILDER_CLEAR_TMP', false);
+			JToolBarHelper::custom('compiler.clearTmp', 'purge custom-button-cleartmp', '', 'COM_COMPONENTBUILDER_CLEAR_TMP', false);
 		}
 
 		// set help url for this view if found
-                $help_url = ComponentbuilderHelper::getHelpUrl('compiler');
-                if (ComponentbuilderHelper::checkString($help_url))
-                {
-                        JToolbarHelper::help('COM_COMPONENTBUILDER_HELP_MANAGER', false, $help_url);
-                }
+		$help_url = ComponentbuilderHelper::getHelpUrl('compiler');
+		if (ComponentbuilderHelper::checkString($help_url))
+		{
+			JToolbarHelper::help('COM_COMPONENTBUILDER_HELP_MANAGER', false, $help_url);
+		}
 
-                // add the options comp button
-                if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
+		// add the options comp button
+		if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
 		{
 			JToolBarHelper::preferences('com_componentbuilder');
 		}
 	}
 
-        /**
+	/**
 	 * Escapes a value for output in a view script.
 	 *
 	 * @param   mixed  $var  The output to escape.
@@ -312,7 +375,7 @@ class ComponentbuilderViewCompiler extends JViewLegacy
 	 */
 	public function escape($var)
 	{
-                // use the helper htmlEscape method instead.
+		// use the helper htmlEscape method instead.
 		return ComponentbuilderHelper::htmlEscape($var, $this->_charset);
 	}
 }

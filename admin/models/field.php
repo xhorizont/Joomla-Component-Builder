@@ -1,47 +1,98 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 37 of this MVC
-	@build			3rd February, 2017
-	@created		30th April, 2015
-	@package		Component Builder
-	@subpackage		field.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
 use Joomla\Registry\Registry;
-
-// import Joomla modelform library
-jimport('joomla.application.component.modeladmin');
+use Joomla\String\StringHelper;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Componentbuilder Field Model
  */
 class ComponentbuilderModelField extends JModelAdmin
-{    
+{
+	/**
+	 * The tab layout fields array.
+	 *
+	 * @var      array
+	 */
+	protected $tabLayoutFields = array(
+		'set_properties' => array(
+			'fullwidth' => array(
+				'note_select_field_type',
+				'note_filter_information'
+			),
+			'above' => array(
+				'fieldtype',
+				'name',
+				'catid'
+			),
+			'under' => array(
+				'not_required'
+			)
+		),
+		'database' => array(
+			'left' => array(
+				'datatype',
+				'datalenght',
+				'datalenght_other',
+				'datadefault',
+				'datadefault_other'
+			),
+			'right' => array(
+				'indexes',
+				'null_switch',
+				'store',
+				'note_whmcs_encryption',
+				'note_expert_field_save_mode',
+				'initiator_on_save_model',
+				'initiator_on_get_model',
+				'on_save_model_field',
+				'on_get_model_field'
+			),
+			'fullwidth' => array(
+				'note_no_database_settings_needed',
+				'note_database_settings_needed'
+			)
+		),
+		'scripts' => array(
+			'left' => array(
+				'add_css_view',
+				'css_view',
+				'add_css_views',
+				'css_views'
+			),
+			'right' => array(
+				'add_javascript_view_footer',
+				'javascript_view_footer',
+				'add_javascript_views_footer',
+				'javascript_views_footer'
+			)
+		),
+		'type_info' => array(
+			'fullwidth' => array(
+				'helpnote',
+				'xml'
+			)
+		)
+	);
+
 	/**
 	 * @var        string    The prefix to use with controller messages.
 	 * @since   1.6
 	 */
 	protected $text_prefix = 'COM_COMPONENTBUILDER';
-    
+
 	/**
 	 * The type alias for this content type.
 	 *
@@ -63,8 +114,60 @@ class ComponentbuilderModelField extends JModelAdmin
 	 */
 	public function getTable($type = 'field', $prefix = 'ComponentbuilderTable', $config = array())
 	{
+		// add table path for when model gets used from other component
+		$this->addTablePath(JPATH_ADMINISTRATOR . '/components/com_componentbuilder/tables');
+		// get instance of the table
 		return JTable::getInstance($type, $prefix, $config);
 	}
+
+
+	/**
+	 * get VDM internal session key
+	 *
+	 * @return  string  the session key
+	 *
+	 */
+	public function getVDM()
+	{
+		if (!isset($this->vastDevMod))
+		{
+			$_id = 0; // new item probably (since it was not set in the getItem method)
+
+			if (empty($_id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $_id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('field__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'field__'.$id);
+				ComponentbuilderHelper::set('field__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+		}
+		return $this->vastDevMod;
+	}
+
     
 	/**
 	 * Method to get a single record.
@@ -79,7 +182,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	{
 		if ($item = parent::getItem($pk))
 		{
-			if (!empty($item->params))
+			if (!empty($item->params) && !is_array($item->params))
 			{
 				// Convert the params field to an array.
 				$registry = new Registry;
@@ -95,10 +198,22 @@ class ComponentbuilderModelField extends JModelAdmin
 				$item->metadata = $registry->toArray();
 			}
 
-			if (!empty($item->xml))
+			if (!empty($item->on_get_model_field))
 			{
-				// JSON Decode xml.
-				$item->xml = json_decode($item->xml);
+				// base64 Decode on_get_model_field.
+				$item->on_get_model_field = base64_decode($item->on_get_model_field);
+			}
+
+			if (!empty($item->on_save_model_field))
+			{
+				// base64 Decode on_save_model_field.
+				$item->on_save_model_field = base64_decode($item->on_save_model_field);
+			}
+
+			if (!empty($item->initiator_on_get_model))
+			{
+				// base64 Decode initiator_on_get_model.
+				$item->initiator_on_get_model = base64_decode($item->initiator_on_get_model);
 			}
 
 			if (!empty($item->css_view))
@@ -107,22 +222,67 @@ class ComponentbuilderModelField extends JModelAdmin
 				$item->css_view = base64_decode($item->css_view);
 			}
 
-			if (!empty($item->css_views))
-			{
-				// base64 Decode css_views.
-				$item->css_views = base64_decode($item->css_views);
-			}
-
 			if (!empty($item->javascript_view_footer))
 			{
 				// base64 Decode javascript_view_footer.
 				$item->javascript_view_footer = base64_decode($item->javascript_view_footer);
 			}
 
+			if (!empty($item->css_views))
+			{
+				// base64 Decode css_views.
+				$item->css_views = base64_decode($item->css_views);
+			}
+
 			if (!empty($item->javascript_views_footer))
 			{
 				// base64 Decode javascript_views_footer.
 				$item->javascript_views_footer = base64_decode($item->javascript_views_footer);
+			}
+
+			if (!empty($item->initiator_on_save_model))
+			{
+				// base64 Decode initiator_on_save_model.
+				$item->initiator_on_save_model = base64_decode($item->initiator_on_save_model);
+			}
+
+			if (!empty($item->xml))
+			{
+				// JSON Decode xml.
+				$item->xml = json_decode($item->xml);
+			}
+
+
+			if (empty($item->id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $item->id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('field__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'field__'.$id);
+				ComponentbuilderHelper::set('field__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
 			}
 			
 			if (!empty($item->id))
@@ -131,117 +291,42 @@ class ComponentbuilderModelField extends JModelAdmin
 				$item->tags->getTagIds($item->id, 'com_componentbuilder.field');
 			}
 		}
-		$this->addfieldsvvwc = $item->id;
 
 		return $item;
 	}
-
-	/**
-	* Method to get list data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getVzylinked_admin_views()
-	{
-		// Get the user object.
-		$user = JFactory::getUser();
-		// Create a new query object.
-		$db = JFactory::getDBO();
-		$query = $db->getQuery(true);
-
-		// Select some fields
-		$query->select('a.*');
-
-		// From the componentbuilder_admin_view table
-		$query->from($db->quoteName('#__componentbuilder_admin_view', 'a'));
-
-		// Join over the asset groups.
-		$query->select('ag.title AS access_level');
-		$query->join('LEFT', '#__viewlevels AS ag ON ag.id = a.access');
-		// Filter by access level.
-		if ($access = $this->getState('filter.access'))
-		{
-			$query->where('a.access = ' . (int) $access);
-		}
-		// Implement View Level Access
-		if (!$user->authorise('core.options', 'com_componentbuilder'))
-		{
-			$groups = implode(',', $user->getAuthorisedViewLevels());
-			$query->where('a.access IN (' . $groups . ')');
-		}
-
-		// Order the results by ordering
-		$query->order('a.published  ASC');
-		$query->order('a.ordering  ASC');
-
-		// Load the items
-		$db->setQuery($query);
-		$db->execute();
-		if ($db->getNumRows())
-		{
-			$items = $db->loadObjectList();
-
-			// set values to display correctly.
-			if (ComponentbuilderHelper::checkArray($items))
-			{
-				// get user object.
-				$user = JFactory::getUser();
-				foreach ($items as $nr => &$item)
-				{
-					$access = ($user->authorise('admin_view.access', 'com_componentbuilder.admin_view.' . (int) $item->id) && $user->authorise('admin_view.access', 'com_componentbuilder'));
-					if (!$access)
-					{
-						unset($items[$nr]);
-						continue;
-					}
-
-				}
-			}
-
-			// Filter by addfieldsvvwc in this Repetable Field
-			if (ComponentbuilderHelper::checkArray($items) && isset($this->addfieldsvvwc))
-			{
-				foreach ($items as $nr => &$item)
-				{
-					if (isset($item->addfields) && ComponentbuilderHelper::checkJson($item->addfields))
-					{
-						$tmpArray = json_decode($item->addfields,true);
-						if (!in_array($this->addfieldsvvwc, $tmpArray['field']))
-						{
-							unset($items[$nr]);
-							continue;
-						}
-					}
-					else
-					{
-						unset($items[$nr]);
-						continue;
-					}
-				}
-			}
-			else
-			{
-				return false;
-			}
-			return $items;
-		}
-		return false;
-	} 
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
 	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 * @param   array    $options   Optional array of options for the form creation.
 	 *
 	 * @return  mixed  A JForm object on success, false on failure
 	 *
 	 * @since   1.6
 	 */
-	public function getForm($data = array(), $loadData = true)
+	public function getForm($data = array(), $loadData = true, $options = array('control' => 'jform'))
 	{
+		// set load data option
+		$options['load_data'] = $loadData;
+		// check if xpath was set in options
+		$xpath = false;
+		if (isset($options['xpath']))
+		{
+			$xpath = $options['xpath'];
+			unset($options['xpath']);
+		}
+		// check if clear form was set in options
+		$clear = false;
+		if (isset($options['clear']))
+		{
+			$clear = $options['clear'];
+			unset($options['clear']);
+		}
+
 		// Get the form.
-		$form = $this->loadForm('com_componentbuilder.field', 'field', array('control' => 'jform', 'load_data' => $loadData));
+		$form = $this->loadForm('com_componentbuilder.field', 'field', $options, $clear, $xpath);
 
 		if (empty($form))
 		{
@@ -302,15 +387,42 @@ class ComponentbuilderModelField extends JModelAdmin
 		// Only load these values if no id is found
 		if (0 == $id)
 		{
-			// Set redirected field name
-			$redirectedField = $jinput->get('ref', null, 'STRING');
-			// Set redirected field value
-			$redirectedValue = $jinput->get('refid', 0, 'INT');
+			// Set redirected view name
+			$redirectedView = $jinput->get('ref', null, 'STRING');
+			// Set field name (or fall back to view name)
+			$redirectedField = $jinput->get('field', $redirectedView, 'STRING');
+			// Set redirected view id
+			$redirectedId = $jinput->get('refid', 0, 'INT');
+			// Set field id (or fall back to redirected view id)
+			$redirectedValue = $jinput->get('field_id', $redirectedId, 'INT');
 			if (0 != $redirectedValue && $redirectedField)
 			{
 				// Now set the local-redirected field default value
 				$form->setValue($redirectedField, null, $redirectedValue);
 			}
+		}
+
+		// update all editors to use this components global editor
+		$global_editor = JComponentHelper::getParams('com_componentbuilder')->get('editor', 'none');
+		// now get all the editor fields
+		$editors = $form->getXml()->xpath("//field[@type='editor']");
+		// check if we found any
+		if (ComponentbuilderHelper::checkArray($editors))
+		{
+			foreach ($editors as $editor)
+			{
+				// get the field names
+				$name = (string) $editor['name'];
+				// set the field editor value (with none as fallback)
+				$form->setFieldAttribute($name, 'editor', $global_editor . '|none');
+			}
+		}
+
+
+		// Only load the GUID if new item (or empty)
+		if (0 == $id || !($val = $form->getValue('guid')))
+		{
+			$form->setValue('guid', null, ComponentbuilderHelper::GUID());
 		}
 
 		return $form;
@@ -363,7 +475,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	protected function canEditState($record)
 	{
 		$user = JFactory::getUser();
-		$recordId	= (!empty($record->id)) ? $record->id : 0;
+		$recordId = (!empty($record->id)) ? $record->id : 0;
 
 		if ($recordId)
 		{
@@ -468,28 +580,30 @@ class ComponentbuilderModelField extends JModelAdmin
 		if (empty($data))
 		{
 			$data = $this->getItem();
+			// run the perprocess of the data
+			$this->preprocessData('com_componentbuilder.field', $data);
 		}
 
 		return $data;
 	}
 
 	/**
-	* Method to validate the form data.
-	*
-	* @param   JForm   $form   The form to validate against.
-	* @param   array   $data   The data to validate.
-	* @param   string  $group  The name of the field group to validate.
-	*
-	* @return  mixed  Array of filtered data if valid, false otherwise.
-	*
-	* @see     JFormRule
-	* @see     JFilterInput
-	* @since   12.2
-	*/
+	 * Method to validate the form data.
+	 *
+	 * @param   JForm   $form   The form to validate against.
+	 * @param   array   $data   The data to validate.
+	 * @param   string  $group  The name of the field group to validate.
+	 *
+	 * @return  mixed  Array of filtered data if valid, false otherwise.
+	 *
+	 * @see     JFormRule
+	 * @see     JFilterInput
+	 * @since   12.2
+	 */
 	public function validate($form, $data, $group = null)
 	{
 		// check if the not_required field is set
-		if (ComponentbuilderHelper::checkString($data['not_required']))
+		if (isset($data['not_required']) && ComponentbuilderHelper::checkString($data['not_required']))
 		{
 			$requiredFields = (array) explode(',',(string) $data['not_required']);
 			$requiredFields = array_unique($requiredFields);
@@ -507,7 +621,7 @@ class ComponentbuilderModelField extends JModelAdmin
 			}
 		}
 		return parent::validate($form, $data, $group);
-	} 
+	}
 
 	/**
 	 * Method to get the unique fields of this table.
@@ -516,9 +630,9 @@ class ComponentbuilderModelField extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function getUniqeFields()
+	protected function getUniqueFields()
 	{
-		return false;
+		return array('guid');
 	}
 	
 	/**
@@ -575,7 +689,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	{
 		// Sanitize ids.
 		$pks = array_unique($pks);
-		JArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($pks);
 
 		// Remove any values of zero.
 		if (array_search(0, $pks, true))
@@ -616,7 +730,7 @@ class ComponentbuilderModelField extends JModelAdmin
 
 		if (!empty($commands['move_copy']))
 		{
-			$cmd = JArrayHelper::getValue($commands, 'move_copy', 'c');
+			$cmd = ArrayHelper::getValue($commands, 'move_copy', 'c');
 
 			if ($cmd == 'c')
 			{
@@ -665,7 +779,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	 *
 	 * @return  mixed  An array of new IDs on success, boolean false on failure.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchCopy($values, $pks, $contexts)
 	{
@@ -675,8 +789,6 @@ class ComponentbuilderModelField extends JModelAdmin
 			$this->user 		= JFactory::getUser();
 			$this->table 		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('field');
 		}
 
@@ -685,8 +797,8 @@ class ComponentbuilderModelField extends JModelAdmin
 			return false;
 		}
 
-		// get list of uniqe fields
-		$uniqeFields = $this->getUniqeFields();
+		// get list of unique fields
+		$uniqueFields = $this->getUniqueFields();
 		// remove move_copy from array
 		unset($values['move_copy']);
 
@@ -716,7 +828,6 @@ class ComponentbuilderModelField extends JModelAdmin
 		}
 
 		$newIds = array();
-
 		// Parent exists so let's proceed
 		while (!empty($pks))
 		{
@@ -726,17 +837,11 @@ class ComponentbuilderModelField extends JModelAdmin
 			$this->table->reset();
 
 			// only allow copy if user may edit this item.
-
 			if (!$this->user->authorise('field.edit', $contexts[$pk]))
-
 			{
-
 				// Not fatal error
-
 				$this->setError(JText::sprintf('JLIB_APPLICATION_ERROR_BATCH_MOVE_ROW_NOT_FOUND', $pk));
-
 				continue;
-
 			}
 
 			// Check that the row actually exists
@@ -746,7 +851,6 @@ class ComponentbuilderModelField extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -769,12 +873,12 @@ class ComponentbuilderModelField extends JModelAdmin
 				}
 			}
 
-			// update all uniqe fields
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// update all unique fields
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$this->table->$uniqeField = $this->generateUniqe($uniqeField,$this->table->$uniqeField);
+					$this->table->$uniqueField = $this->generateUnique($uniqueField,$this->table->$uniqueField);
 				}
 			}
 
@@ -782,7 +886,7 @@ class ComponentbuilderModelField extends JModelAdmin
 			$this->table->id = 0;
 
 			// TODO: Deal with ordering?
-			// $this->table->ordering	= 1;
+			// $this->table->ordering = 1;
 
 			// Check the row.
 			if (!$this->table->check())
@@ -816,7 +920,7 @@ class ComponentbuilderModelField extends JModelAdmin
 		$this->cleanCache();
 
 		return $newIds;
-	} 
+	}
 
 	/**
 	 * Batch move items to a new category
@@ -827,7 +931,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	 *
 	 * @return  boolean  True if successful, false otherwise and internal error is set.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchMove($values, $pks, $contexts)
 	{
@@ -837,8 +941,6 @@ class ComponentbuilderModelField extends JModelAdmin
 			$this->user		= JFactory::getUser();
 			$this->table		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('field');
 		}
 
@@ -878,7 +980,6 @@ class ComponentbuilderModelField extends JModelAdmin
 			if (!$this->user->authorise('field.edit', $contexts[$pk]))
 			{
 				$this->setError(JText::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
-
 				return false;
 			}
 
@@ -889,7 +990,6 @@ class ComponentbuilderModelField extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -968,12 +1068,117 @@ class ComponentbuilderModelField extends JModelAdmin
 			$metadata = new JRegistry;
 			$metadata->loadArray($data['metadata']);
 			$data['metadata'] = (string) $metadata;
-		} 
+		}
+
+		// get the properties
+		$properties = $input->get('properties', null, 'ARRAY');
+		// get the extra properties
+		$extraproperties = $input->get('extraproperties', null, 'ARRAY');
+		// get the type php property
+		$typephp = array();
+		foreach (ComponentbuilderHelper::$phpFieldArray as $x)
+		{
+			$typephp[$x] = $input->get('property_type_php' . $x, null, 'RAW');
+		}
+		// make sure we have an array
+		if (ComponentbuilderHelper::checkArray($properties))
+		{
+			// set the bucket
+			$bucket = array();
+			foreach($properties as $property)
+			{
+				// make sure we have the correct values
+				if (ComponentbuilderHelper::checkArray($property) && isset($property['name']) && ComponentbuilderHelper::checkString($property['name']) && (isset($property['value']) || 'default' === $property['name']))
+				{
+					// some fixes, just in case (more can be added)
+					switch ($property['name'])
+					{
+						// fix the values
+						case 'name':
+							// check if we have placeholder in name
+							if (strpos($property['value'], '[[[') !== false || strpos($property['value'], '###') !== false)
+							{
+								$property['value'] = trim($property['value']);
+							}
+							else
+							{
+								$property['value'] = ComponentbuilderHelper::safeFieldName($property['value']);
+							}
+						break;
+						case 'type':
+							$property['value'] = ComponentbuilderHelper::safeTypeName($property['value']);
+						break;
+					}
+					// load the property
+					$bucket[] = "\t" . $property['name'] . '="' . str_replace('"', "&quot;", $property['value']) . '"';
+				}
+			}
+			// make sure we have an array
+			if (ComponentbuilderHelper::checkArray($extraproperties))
+			{
+				foreach($extraproperties as $xproperty)
+				{
+					// make sure we have the correct values
+					if (ComponentbuilderHelper::checkArray($xproperty) && isset($xproperty['name']) && ComponentbuilderHelper::checkString($xproperty['name']) && isset($xproperty['value']))
+					{
+						// load the extra property
+						$bucket[] = "\t" . ComponentbuilderHelper::safeString($xproperty['name']) . '="' . str_replace('"', "&quot;", $xproperty['value']) . '"';
+					}
+				}
+			}
+			// load the PHP
+			foreach ($typephp as $x => $phpvalue)
+			{
+				// make sure we have a string
+				if (ComponentbuilderHelper::checkString($phpvalue))
+				{
+					// load the type_php property
+					$bucket[] = "\t" . 'type_php' . $x . '_1="__.o0=base64=Oo.__' . base64_encode($phpvalue) . '"';
+				}
+			}
+			// if the bucket has been loaded
+			if (ComponentbuilderHelper::checkArray($bucket))
+			{
+				$data['xml'] = "<field" . PHP_EOL . implode(PHP_EOL, $bucket) . PHP_EOL . "/>";
+			}
+		}
+
+		// Set the GUID if empty or not valid
+		if (empty($data['guid']) && $data['id'] > 0)
+		{
+			// get the existing one
+			$data['guid'] = (string) ComponentbuilderHelper::getVar('field', $data['id'], 'id', 'guid');
+		}
+		// Set the GUID if empty or not valid
+		while (!ComponentbuilderHelper::validGUID($data['guid'], "field", $data['id']))
+		{
+			// must always be set
+			$data['guid'] = (string) ComponentbuilderHelper::GUID();
+		}
+
 
 		// Set the xml string to JSON string.
 		if (isset($data['xml']))
 		{
 			$data['xml'] = (string) json_encode($data['xml']);
+		}
+
+		// Set the on_get_model_field string to base64 string.
+		if (isset($data['on_get_model_field']))
+		{
+			$data['on_get_model_field'] = base64_encode($data['on_get_model_field']);
+		}
+
+		// Set the on_save_model_field string to base64 string.
+		if (isset($data['on_save_model_field']))
+		{
+			$data['on_save_model_field'] = base64_encode($data['on_save_model_field']);
+		}
+
+		// Set the initiator_on_get_model string to base64 string.
+		if (isset($data['initiator_on_get_model']))
+		{
+			$data['initiator_on_get_model'] = base64_encode($data['initiator_on_get_model']);
 		}
 
 		// Set the css_view string to base64 string.
@@ -982,22 +1187,28 @@ class ComponentbuilderModelField extends JModelAdmin
 			$data['css_view'] = base64_encode($data['css_view']);
 		}
 
-		// Set the css_views string to base64 string.
-		if (isset($data['css_views']))
-		{
-			$data['css_views'] = base64_encode($data['css_views']);
-		}
-
 		// Set the javascript_view_footer string to base64 string.
 		if (isset($data['javascript_view_footer']))
 		{
 			$data['javascript_view_footer'] = base64_encode($data['javascript_view_footer']);
 		}
 
+		// Set the css_views string to base64 string.
+		if (isset($data['css_views']))
+		{
+			$data['css_views'] = base64_encode($data['css_views']);
+		}
+
 		// Set the javascript_views_footer string to base64 string.
 		if (isset($data['javascript_views_footer']))
 		{
 			$data['javascript_views_footer'] = base64_encode($data['javascript_views_footer']);
+		}
+
+		// Set the initiator_on_save_model string to base64 string.
+		if (isset($data['initiator_on_save_model']))
+		{
+			$data['initiator_on_save_model'] = base64_encode($data['initiator_on_save_model']);
 		}
         
 		// Set the Params Items to data
@@ -1008,16 +1219,16 @@ class ComponentbuilderModelField extends JModelAdmin
 			$data['params'] = (string) $params;
 		}
 
-		// Alter the uniqe field for save as copy
+		// Alter the unique field for save as copy
 		if ($input->get('task') === 'save2copy')
 		{
-			// Automatic handling of other uniqe fields
-			$uniqeFields = $this->getUniqeFields();
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// Automatic handling of other unique fields
+			$uniqueFields = $this->getUniqueFields();
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$data[$uniqeField] = $this->generateUniqe($uniqeField,$data[$uniqeField]);
+					$data[$uniqueField] = $this->generateUnique($uniqueField,$data[$uniqueField]);
 				}
 			}
 		}
@@ -1030,7 +1241,7 @@ class ComponentbuilderModelField extends JModelAdmin
 	}
 	
 	/**
-	 * Method to generate a uniqe value.
+	 * Method to generate a unique value.
 	 *
 	 * @param   string  $field name.
 	 * @param   string  $value data.
@@ -1039,28 +1250,28 @@ class ComponentbuilderModelField extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function generateUniqe($field,$value)
+	protected function generateUnique($field,$value)
 	{
 
-		// set field value uniqe 
+		// set field value unique
 		$table = $this->getTable();
 
 		while ($table->load(array($field => $value)))
 		{
-			$value = JString::increment($value);
+			$value = StringHelper::increment($value);
 		}
 
 		return $value;
 	}
 
 	/**
-	* Method to change the title & alias.
-	*
-	* @param   string   $title        The title.
-	*
-	* @return	array  Contains the modified title and alias.
-	*
-	*/
+	 * Method to change the title
+	 *
+	 * @param   string   $title   The title.
+	 *
+	 * @return	array  Contains the modified title and alias.
+	 *
+	 */
 	protected function _generateNewTitle($title)
 	{
 
@@ -1069,7 +1280,7 @@ class ComponentbuilderModelField extends JModelAdmin
 
 		while ($table->load(array('title' => $title)))
 		{
-			$title = JString::increment($title);
+			$title = StringHelper::increment($title);
 		}
 
 		return $title;

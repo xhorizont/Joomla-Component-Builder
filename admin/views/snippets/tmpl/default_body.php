@@ -1,27 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 16 of this MVC
-	@build			20th October, 2016
-	@created		19th May, 2015
-	@package		Component Builder
-	@subpackage		default_body.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access'); 
@@ -75,25 +61,34 @@ $edit = "index.php?option=com_componentbuilder&view=snippets&task=snippet.edit";
 		<?php endif; ?>
 		</td>
 		<td class="nowrap">
-			<?php if ($canDo->get('core.edit')): ?>
-				<div class="name">
+			<div class="name">
+				<?php if ($canDo->get('core.edit')): ?>
 					<a href="<?php echo $edit; ?>&id=<?php echo $item->id; ?>"><?php echo $this->escape($item->name); ?></a>
 					<?php if ($item->checked_out): ?>
 						<?php echo JHtml::_('jgrid.checkedout', $i, $userChkOut->name, $item->checked_out_time, 'snippets.', $canCheckin); ?>
 					<?php endif; ?>
-				</div>
-			<?php else: ?>
-				<div class="name"><?php echo $this->escape($item->name); ?></div>
-			<?php endif; ?>
+				<?php else: ?>
+					<?php echo $this->escape($item->name); ?>
+				<?php endif; ?>
+			</div>
 		</td>
 		<td class="hidden-phone">
 			<?php echo $this->escape($item->url); ?>
 		</td>
 		<td class="hidden-phone">
-			<?php echo JText::_($item->type); ?>
+			<?php echo $this->escape($item->type_name); ?>
 		</td>
 		<td class="hidden-phone">
 			<?php echo $this->escape($item->heading); ?>
+		</td>
+		<td class="nowrap">
+			<div class="name">
+				<?php if ($this->user->authorise('library.edit', 'com_componentbuilder.library.' . (int)$item->library)): ?>
+					<a href="index.php?option=com_componentbuilder&view=libraries&task=library.edit&id=<?php echo $item->library; ?>&return=<?php echo $this->return_here; ?>"><?php echo $this->escape($item->library_name); ?></a>
+				<?php else: ?>
+					<?php echo $this->escape($item->library_name); ?>
+				<?php endif; ?>
+			</div>
 		</td>
 		<td class="center">
 		<?php if ($canDo->get('core.edit.state')) : ?>

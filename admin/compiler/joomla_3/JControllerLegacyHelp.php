@@ -1,25 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@package		Component Builder
-	@subpackage		componentbuilder.php
-	@author			Llewellyn van der Merwe <https://www.vdm.io/joomla-component-builder>
-	@my wife		Roline van der Merwe <http://www.vdm.io/>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2018 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -29,8 +17,7 @@ defined('_JEXEC') or die('Restricted access');
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import Joomla controllerform library
-jimport('joomla.application.component.controller');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * ###Component### Help Controller
@@ -51,7 +38,8 @@ class ###Component###ControllerHelp extends JControllerLegacy
 		// Check Token!
 		$token 		= JSession::getFormToken();
 		$call_token	= $jinput->get('token', 0, 'ALNUM');
-		if($user->id != 0 && $token == $call_token){
+		if($user->id != 0 && $token == $call_token)
+		{
 			$task = $this->getTask();
 			switch($task){
 				case 'getText':
@@ -67,25 +55,25 @@ class ###Component###ControllerHelp extends JControllerLegacy
 							$result = '';
 						}
 						echo $result;
-                                                // stop execution gracefully
-                                                jexit();
+						// stop execution gracefully
+						jexit();
 					}
-						catch(Exception $e)
+					catch(Exception $e)
 					{
-                                                // stop execution gracefully
+						// stop execution gracefully
 						jexit();
 					}
 				break;
 			}
 		}
-                else
-                {
-                        // stop execution gracefully
+ 		else
+		{
+			// stop execution gracefully
 			jexit();
 		}
 	}
 
-        protected function getHelpDocumentText($id)
+	protected function getHelpDocumentText($id)
 	{
 		$db		= JFactory::getDbo();
 		$query	= $db->getQuery(true);

@@ -19,7 +19,6 @@
 			label="COM_COMPONENTBUILDER_SNIPPET_CREATED_DATE_LABEL"
 			description="COM_COMPONENTBUILDER_SNIPPET_CREATED_DATE_DESC"
 			size="22"
-
 			format="%Y-%m-%d %H:%M:%S"
 			filter="user_utc"
 		/>
@@ -28,13 +27,11 @@
 			name="created_by"
 			type="user"
 			label="COM_COMPONENTBUILDER_SNIPPET_CREATED_BY_LABEL"
-
 			description="COM_COMPONENTBUILDER_SNIPPET_CREATED_BY_DESC"
 		/>
 		<!-- Published Field. Type: List (joomla) -->
 		<field name="published" type="list" label="JSTATUS"
 			description="JFIELD_PUBLISHED_DESC" class="chzn-color-state"
-
 			filter="intval" size="1" default="1" >
 			<option value="1">
 				JPUBLISHED</option>
@@ -63,7 +60,6 @@
 			label="JFIELD_ACCESS_LABEL"
 			description="JFIELD_ACCESS_DESC"
 			default="1"
-
 			required="false"
 		/>
 		<!-- Ordering Field. Type: Numbers (joomla) -->
@@ -75,7 +71,6 @@
 			description=""
 			default="0"
 			size="6"
-
 			required="false"
 		/>
 		<!-- Version Field. Type: Text (joomla) -->
@@ -103,7 +98,7 @@
 			disabled="false"
 			required="true"
 			filter="STRING"
-			message="Error! Please add name here."
+			message="COM_COMPONENTBUILDER_SNIPPET_NAME_MESSAGE"
 			hint="COM_COMPONENTBUILDER_SNIPPET_NAME_HINT"
 		/>
 		<!-- Url Field. Type: Url. (joomla) -->
@@ -113,38 +108,27 @@
 			label="COM_COMPONENTBUILDER_SNIPPET_URL_LABEL"
 			size="60"
 			maxlength="150"
+			default=""
 			description="COM_COMPONENTBUILDER_SNIPPET_URL_DESCRIPTION"
 			class="text_area"
 			required="true"
 			filter="url"
 			validated="url"
-			message="Error! Please add url here."
+			scheme="http,https"
+			message="COM_COMPONENTBUILDER_SNIPPET_URL_MESSAGE"
 			hint="COM_COMPONENTBUILDER_SNIPPET_URL_HINT"
 		/>
-		<!-- Type Field. Type: List. (joomla) -->
+		<!-- Type Field. Type: Snippettype. (custom) -->
 		<field
-			type="list"
+			type="snippettype"
 			name="type"
 			label="COM_COMPONENTBUILDER_SNIPPET_TYPE_LABEL"
 			description="COM_COMPONENTBUILDER_SNIPPET_TYPE_DESCRIPTION"
 			class="list_class"
 			multiple="false"
-			filter="INT"
-			required="true">
-			<!-- Option Set. -->
-			<option value="1">
-				COM_COMPONENTBUILDER_SNIPPET_LAYOUT</option>
-			<option value="2">
-				COM_COMPONENTBUILDER_SNIPPET_NAVIGATIONS</option>
-			<option value="3">
-				COM_COMPONENTBUILDER_SNIPPET_ELEMENTS</option>
-			<option value="4">
-				COM_COMPONENTBUILDER_SNIPPET_COMMON</option>
-			<option value="5">
-				COM_COMPONENTBUILDER_SNIPPET_JAVASCRIPT</option>
-			<option value="6">
-				COM_COMPONENTBUILDER_SNIPPET_CHARTS</option>
-		</field>
+			default="0"
+			required="true"
+		/>
 		<!-- Heading Field. Type: Text. (joomla) -->
 		<field
 			type="text"
@@ -156,20 +140,105 @@
 			class="text_area"
 			required="true"
 			filter="HTML"
-			message="Error! Please add some short heading here."
+			message="COM_COMPONENTBUILDER_SNIPPET_HEADING_MESSAGE"
 			hint="COM_COMPONENTBUILDER_SNIPPET_HEADING_HINT"
 		/>
-		<!-- Description Field. Type: Textarea. (joomla) -->
+		<!-- Library Field. Type: Library. (custom) -->
+		<field
+			type="library"
+			name="library"
+			label="COM_COMPONENTBUILDER_SNIPPET_LIBRARY_LABEL"
+			description="COM_COMPONENTBUILDER_SNIPPET_LIBRARY_DESCRIPTION"
+			class="list_class"
+			multiple="false"
+			default="0"
+			required="true"
+			button="true"
+		/>
+		<!-- Guid Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="guid"
+			label="COM_COMPONENTBUILDER_SNIPPET_GUID_LABEL"
+			size="40"
+			maxlength="40"
+			description="COM_COMPONENTBUILDER_SNIPPET_GUID_DESCRIPTION"
+			class="text_area"
+			readonly="true"
+			filter="CMD"
+			validate="guid"
+			hint="COM_COMPONENTBUILDER_SNIPPET_GUID_HINT"
+		/>
+		<!-- Note_contributor_details Field. Type: Note. A None Database Field. (joomla) -->
+		<field type="note" name="note_contributor_details" label="COM_COMPONENTBUILDER_SNIPPET_NOTE_CONTRIBUTOR_DETAILS_LABEL" description="COM_COMPONENTBUILDER_SNIPPET_NOTE_CONTRIBUTOR_DETAILS_DESCRIPTION" heading="h4" class="alert alert-info note_contributor_details" />
+		<!-- Contributor_email Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="contributor_email"
+			label="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_EMAIL_LABEL"
+			size="10"
+			maxlength="50"
+			description="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_EMAIL_DESCRIPTION"
+			class="text_area"
+			readonly="true"
+			filter="STRING"
+			message="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_EMAIL_MESSAGE"
+			hint="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_EMAIL_HINT"
+		/>
+		<!-- Contributor_name Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="contributor_name"
+			label="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_NAME_LABEL"
+			size="10"
+			maxlength="50"
+			description="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_NAME_DESCRIPTION"
+			class="text_area"
+			readonly="true"
+			filter="STRING"
+			message="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_NAME_MESSAGE"
+			hint="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_NAME_HINT"
+		/>
+		<!-- Contributor_website Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="contributor_website"
+			label="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_WEBSITE_LABEL"
+			size="10"
+			maxlength="50"
+			description="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_WEBSITE_DESCRIPTION"
+			class="text_area"
+			readonly="true"
+			filter="STRING"
+			message="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_WEBSITE_MESSAGE"
+			hint="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_WEBSITE_HINT"
+		/>
+		<!-- Contributor_company Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="contributor_company"
+			label="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_COMPANY_LABEL"
+			size="10"
+			maxlength="50"
+			description="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_COMPANY_DESCRIPTION"
+			class="text_area"
+			readonly="true"
+			filter="STRING"
+			message="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_COMPANY_MESSAGE"
+			hint="COM_COMPONENTBUILDER_SNIPPET_CONTRIBUTOR_COMPANY_HINT"
+		/>
+		<!-- Snippet Field. Type: Textarea. (joomla) -->
 		<field
 			type="textarea"
-			name="description"
-			label="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_LABEL"
-			rows="11"
+			name="snippet"
+			label="COM_COMPONENTBUILDER_SNIPPET_SNIPPET_LABEL"
+			rows="27"
 			cols="10"
-			description="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_DESCRIPTION"
+			default=""
 			class="text_area span12"
-			filter="HTML"
-			hint="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_HINT"
+			filter="raw"
+			hint="COM_COMPONENTBUILDER_SNIPPET_SNIPPET_HINT"
+			required="true"
 		/>
 		<!-- Usage Field. Type: Textarea. (joomla) -->
 		<field
@@ -183,17 +252,17 @@
 			filter="STRING"
 			hint="COM_COMPONENTBUILDER_SNIPPET_USAGE_HINT"
 		/>
-		<!-- Snippet Field. Type: Textarea. (joomla) -->
+		<!-- Description Field. Type: Textarea. (joomla) -->
 		<field
 			type="textarea"
-			name="snippet"
-			label="COM_COMPONENTBUILDER_SNIPPET_SNIPPET_LABEL"
-			rows="27"
+			name="description"
+			label="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_LABEL"
+			rows="11"
 			cols="10"
+			description="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_DESCRIPTION"
 			class="text_area span12"
-			filter="raw"
-			hint="COM_COMPONENTBUILDER_SNIPPET_SNIPPET_HINT"
-			required="true"
+			filter="HTML"
+			hint="COM_COMPONENTBUILDER_SNIPPET_DESCRIPTION_HINT"
 		/>
 	</fieldset>
 	

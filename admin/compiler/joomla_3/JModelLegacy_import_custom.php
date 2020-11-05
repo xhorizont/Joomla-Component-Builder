@@ -1,25 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@package		Component Builder
-	@subpackage		componentbuilder.php
-	@author			Llewellyn van der Merwe <https://www.vdm.io/joomla-component-builder>
-	@my wife		Roline van der Merwe <http://www.vdm.io/>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2018 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -29,11 +17,19 @@ defined('_JEXEC') or die('Restricted access');
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
+use Joomla\Utilities\ArrayHelper;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 /**
  * ###Component### ###View### Model
  */
 class ###Component###Model###View### extends JModelLegacy
 {
+	// set uploading values
+	protected $use_streams = false;
+	protected $allow_unsafe = false;
+	protected $safeFileOptions = array();
+	
 	/**
 	 * @var object JTable object
 	 */
@@ -54,8 +50,8 @@ class ###Component###Model###View### extends JModelLegacy
 	/**
 	 * Import Settings
 	 */
-	protected $getType 	= NULL;
-	protected $dataType	= NULL;
+	protected $getType = NULL;
+	protected $dataType = NULL;
 	
 	/**
 	 * Method to auto-populate the model state.
@@ -75,10 +71,6 @@ class ###Component###Model###View### extends JModelLegacy
 		// Recall the 'Import from Directory' path.
 		$path = $app->getUserStateFromRequest($this->_context . '.import_directory', 'import_directory', $app->get('tmp_path'));
 		$this->setState('import.directory', $path);
-		// set uploading values
-		$this->use_streams = false;
-		$this->allow_unsafe = false;
-		$this->safeFileOptions = array();
 		parent::populateState();
 	}
 	###IMPORT_METHOD_CUSTOM### 
@@ -91,8 +83,8 @@ class ###Component###Model###View### extends JModelLegacy
 	protected function _getPackageFromUpload()
 	{		
 		// Get the uploaded file information
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Do not change the filter type 'raw'. We need this to let files containing PHP code to upload. See JInputFiles::get.
 		$userfile = $input->files->get('import_package', null, 'raw');
@@ -119,9 +111,9 @@ class ###Component###Model###View### extends JModelLegacy
 		}
 
 		// Build the appropriate paths
-		$config		= JFactory::getConfig();
-		$tmp_dest	= $config->get('tmp_path') . '/' . $userfile['name'];
-		$tmp_src	= $userfile['tmp_name'];
+		$config = JFactory::getConfig();
+		$tmp_dest = $config->get('tmp_path') . '/' . $userfile['name'];
+		$tmp_src = $userfile['tmp_name'];
 
 		// Move uploaded file
 		jimport('joomla.filesystem.file');
@@ -152,8 +144,8 @@ class ###Component###Model###View### extends JModelLegacy
 	 */
 	protected function _getPackageFromFolder()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Get the path to the package to import
 		$p_dir = $input->getString('import_directory');
@@ -175,21 +167,16 @@ class ###Component###Model###View### extends JModelLegacy
 		}
 		
 		// check the extention
-		switch(strtolower(pathinfo($p_dir, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($p_dir))
+		{
+			// set error message
 			$app->enqueueMessage(JText::_('COM_###COMPONENT###_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
 		}
 		
 		$package['packagename'] = null;
-		$package['dir'] 		= $p_dir;
-		$package['type'] 		= $type;
+		$package['dir'] = $p_dir;
+		$package['type'] = $type;
 
 		return $package;
 	}
@@ -202,8 +189,8 @@ class ###Component###Model###View### extends JModelLegacy
 	 */
 	protected function _getPackageFromUrl()
 	{
-		$app	= JFactory::getApplication();
-		$input	= $app->input;
+		$app = JFactory::getApplication();
+		$input = $app->input;
 
 		// Get the URL of the package to import
 		$url = $input->getString('import_url');
@@ -242,38 +229,33 @@ class ###Component###Model###View### extends JModelLegacy
 	 */
 	protected function check($archivename)
 	{
-		$app	= JFactory::getApplication();
+		$app = JFactory::getApplication();
 		// Clean the name
 		$archivename = JPath::clean($archivename);
 		
 		// check the extention
-		switch(strtolower(pathinfo($archivename, PATHINFO_EXTENSION))){
-			case 'xls':
-			case 'ods':
-			case 'csv':
-			break;
-			
-			default:
+		if(!$this->checkExtension($archivename))
+		{
 			// Cleanup the import files
 			$this->remove($archivename);
 			$app->enqueueMessage(JText::_('COM_###COMPONENT###_IMPORT_MSG_DOES_NOT_HAVE_A_VALID_FILE_TYPE'), 'warning');
 			return false;
-			break;
-		}	
+		}
 		
-		$config					= JFactory::getConfig();
+		$config = JFactory::getConfig();
 		// set Package Name
-		$check['packagename']	= $archivename;
+		$check['packagename'] = $archivename;
 		
 		// set directory
-		$check['dir']		= $config->get('tmp_path'). '/' .$archivename;
+		$check['dir'] = $config->get('tmp_path'). '/' .$archivename;
 		
 		// set type
-		$check['type']		= $this->getType;
+		$check['type'] = $this->getType;
 		
 		return $check;
 	}
-	
+	###IMPORT_EXT_METHOD###
+
 	/**
 	 * Clean up temporary uploaded spreadsheet
 	 *
@@ -286,8 +268,8 @@ class ###Component###Model###View### extends JModelLegacy
 	{
 		jimport('joomla.filesystem.file');
 		
-		$config		= JFactory::getConfig();
-		$package	= $config->get('tmp_path'). '/' .$package;
+		$config = JFactory::getConfig();
+		$package = $config->get('tmp_path'). '/' .$package;
 
 		// Is the package file a valid file?
 		if (is_file($package))
@@ -300,9 +282,9 @@ class ###Component###Model###View### extends JModelLegacy
 			JFile::delete(JPath::clean($package));
 		}
 	}
-	###IMPORT_SETDATE_METHOD_CUSTOM### 
-	###IMPORT_SAVE_METHOD_CUSTOM###
-	
+	###IMPORT_SETDATA_METHOD###
+	###IMPORT_SAVE_METHOD###
+
 	protected function getAlias($name,$type = false)
 	{
 		// sanitize the name to an alias

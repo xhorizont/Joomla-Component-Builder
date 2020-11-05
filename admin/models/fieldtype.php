@@ -1,47 +1,73 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 12 of this MVC
-	@build			20th October, 2016
-	@created		30th April, 2015
-	@package		Component Builder
-	@subpackage		fieldtype.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
 use Joomla\Registry\Registry;
-
-// import Joomla modelform library
-jimport('joomla.application.component.modeladmin');
+use Joomla\String\StringHelper;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Componentbuilder Fieldtype Model
  */
 class ComponentbuilderModelFieldtype extends JModelAdmin
-{    
+{
+	/**
+	 * The tab layout fields array.
+	 *
+	 * @var      array
+	 */
+	protected $tabLayoutFields = array(
+		'details' => array(
+			'left' => array(
+				'catid',
+				'short_description'
+			),
+			'right' => array(
+				'description'
+			),
+			'fullwidth' => array(
+				'note_on_fields',
+				'properties',
+				'not_required'
+			),
+			'above' => array(
+				'name'
+			)
+		),
+		'database_defaults' => array(
+			'left' => array(
+				'has_defaults',
+				'datatype',
+				'datalenght',
+				'datalenght_other',
+				'datadefault',
+				'datadefault_other'
+			),
+			'right' => array(
+				'indexes',
+				'null_switch',
+				'store',
+				'note_whmcs_encryption'
+			)
+		)
+	);
+
 	/**
 	 * @var        string    The prefix to use with controller messages.
 	 * @since   1.6
 	 */
 	protected $text_prefix = 'COM_COMPONENTBUILDER';
-    
+
 	/**
 	 * The type alias for this content type.
 	 *
@@ -63,8 +89,60 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	 */
 	public function getTable($type = 'fieldtype', $prefix = 'ComponentbuilderTable', $config = array())
 	{
+		// add table path for when model gets used from other component
+		$this->addTablePath(JPATH_ADMINISTRATOR . '/components/com_componentbuilder/tables');
+		// get instance of the table
 		return JTable::getInstance($type, $prefix, $config);
 	}
+
+
+	/**
+	 * get VDM internal session key
+	 *
+	 * @return  string  the session key
+	 *
+	 */
+	public function getVDM()
+	{
+		if (!isset($this->vastDevMod))
+		{
+			$_id = 0; // new item probably (since it was not set in the getItem method)
+
+			if (empty($_id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $_id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('fieldtype__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'fieldtype__'.$id);
+				ComponentbuilderHelper::set('fieldtype__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+		}
+		return $this->vastDevMod;
+	}
+
     
 	/**
 	 * Method to get a single record.
@@ -79,7 +157,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	{
 		if ($item = parent::getItem($pk))
 		{
-			if (!empty($item->params))
+			if (!empty($item->params) && !is_array($item->params))
 			{
 				// Convert the params field to an array.
 				$registry = new Registry;
@@ -94,6 +172,66 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				$registry->loadString($item->metadata);
 				$item->metadata = $registry->toArray();
 			}
+
+			if (!empty($item->properties))
+			{
+				// Convert the properties field to an array.
+				$properties = new Registry;
+				$properties->loadString($item->properties);
+				$item->properties = $properties->toArray();
+			}
+
+
+			if (empty($item->id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $item->id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('fieldtype__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'fieldtype__'.$id);
+				ComponentbuilderHelper::set('fieldtype__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+			// check what type of properties array we have here (should be subform... but just incase)
+			// This could happen due to huge data sets
+			if (isset($item->properties) && isset($item->properties['name']))
+			{
+				$bucket = array();
+				foreach($item->properties as $option => $values)
+				{
+					foreach($values as $nr => $value)
+					{
+						$bucket['addfields'.$nr][$option] = $value;
+					}
+				}
+				$item->properties = $bucket;
+				// be sure to update the value in the db
+				$objectUpdate = new stdClass();
+				$objectUpdate->id = (int) $item->id;
+				$objectUpdate->properties = json_encode($bucket);
+				$this->db->updateObject('#__componentbuilder_fieldtype', $objectUpdate, 'id');
+			}
 			
 			if (!empty($item->id))
 			{
@@ -101,17 +239,17 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				$item->tags->getTagIds($item->id, 'com_componentbuilder.fieldtype');
 			}
 		}
-		$this->fieldtypevvwd = $item->id;
+		$this->fieldtypevvvv = $item->id;
 
 		return $item;
 	}
 
 	/**
-	* Method to get list data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getVzzfields()
+	 * Method to get list data.
+	 *
+	 * @return mixed  An array of data items on success, false on failure.
+	 */
+	public function getVycfields()
 	{
 		// Get the user object.
 		$user = JFactory::getUser();
@@ -131,15 +269,15 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		$query->select($db->quoteName('g.name','fieldtype_name'));
 		$query->join('LEFT', $db->quoteName('#__componentbuilder_fieldtype', 'g') . ' ON (' . $db->quoteName('a.fieldtype') . ' = ' . $db->quoteName('g.id') . ')');
 
-		// Filter by fieldtypevvwd global.
-		$fieldtypevvwd = $this->fieldtypevvwd;
-		if (is_numeric($fieldtypevvwd ))
+		// Filter by fieldtypevvvv global.
+		$fieldtypevvvv = $this->fieldtypevvvv;
+		if (is_numeric($fieldtypevvvv ))
 		{
-			$query->where('a.fieldtype = ' . (int) $fieldtypevvwd );
+			$query->where('a.fieldtype = ' . (int) $fieldtypevvvv );
 		}
-		elseif (is_string($fieldtypevvwd))
+		elseif (is_string($fieldtypevvvv))
 		{
-			$query->where('a.fieldtype = ' . $db->quote($fieldtypevvwd));
+			$query->where('a.fieldtype = ' . $db->quote($fieldtypevvvv));
 		}
 		else
 		{
@@ -172,13 +310,17 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		{
 			$items = $db->loadObjectList();
 
-			// set values to display correctly.
+			// Set values to display correctly.
 			if (ComponentbuilderHelper::checkArray($items))
 			{
-				// get user object.
-				$user = JFactory::getUser();
+				// Get the user object if not set.
+				if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+				{
+					$user = JFactory::getUser();
+				}
 				foreach ($items as $nr => &$item)
 				{
+					// Remove items the user can't access.
 					$access = ($user->authorise('field.access', 'com_componentbuilder.field.' . (int) $item->id) && $user->authorise('field.access', 'com_componentbuilder'));
 					if (!$access)
 					{
@@ -195,13 +337,13 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				foreach ($items as $nr => &$item)
 				{
 					// convert datatype
-					$item->datatype = $this->selectionTranslationVzzfields($item->datatype, 'datatype');
+					$item->datatype = $this->selectionTranslationVycfields($item->datatype, 'datatype');
 					// convert indexes
-					$item->indexes = $this->selectionTranslationVzzfields($item->indexes, 'indexes');
+					$item->indexes = $this->selectionTranslationVycfields($item->indexes, 'indexes');
 					// convert null_switch
-					$item->null_switch = $this->selectionTranslationVzzfields($item->null_switch, 'null_switch');
+					$item->null_switch = $this->selectionTranslationVycfields($item->null_switch, 'null_switch');
 					// convert store
-					$item->store = $this->selectionTranslationVzzfields($item->store, 'store');
+					$item->store = $this->selectionTranslationVycfields($item->store, 'store');
 				}
 			}
 
@@ -211,21 +353,26 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	}
 
 	/**
-	* Method to convert selection values to translatable string.
-	*
-	* @return translatable string
-	*/
-	public function selectionTranslationVzzfields($value,$name)
+	 * Method to convert selection values to translatable string.
+	 *
+	 * @return translatable string
+	 */
+	public function selectionTranslationVycfields($value,$name)
 	{
 		// Array of datatype language strings
 		if ($name === 'datatype')
 		{
 			$datatypeArray = array(
+				0 => 'COM_COMPONENTBUILDER_FIELD_SELECT_AN_OPTION',
 				'CHAR' => 'COM_COMPONENTBUILDER_FIELD_CHAR',
 				'VARCHAR' => 'COM_COMPONENTBUILDER_FIELD_VARCHAR',
 				'TEXT' => 'COM_COMPONENTBUILDER_FIELD_TEXT',
 				'MEDIUMTEXT' => 'COM_COMPONENTBUILDER_FIELD_MEDIUMTEXT',
 				'LONGTEXT' => 'COM_COMPONENTBUILDER_FIELD_LONGTEXT',
+				'BLOB' => 'COM_COMPONENTBUILDER_FIELD_BLOB',
+				'TINYBLOB' => 'COM_COMPONENTBUILDER_FIELD_TINYBLOB',
+				'MEDIUMBLOB' => 'COM_COMPONENTBUILDER_FIELD_MEDIUMBLOB',
+				'LONGBLOB' => 'COM_COMPONENTBUILDER_FIELD_LONGBLOB',
 				'DATETIME' => 'COM_COMPONENTBUILDER_FIELD_DATETIME',
 				'DATE' => 'COM_COMPONENTBUILDER_FIELD_DATE',
 				'TIME' => 'COM_COMPONENTBUILDER_FIELD_TIME',
@@ -276,8 +423,10 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				0 => 'COM_COMPONENTBUILDER_FIELD_DEFAULT',
 				1 => 'COM_COMPONENTBUILDER_FIELD_JSON',
 				2 => 'COM_COMPONENTBUILDER_FIELD_BASESIXTY_FOUR',
-				3 => 'COM_COMPONENTBUILDER_FIELD_BASIC_ENCRYPTION_LOCALKEY',
-				4 => 'COM_COMPONENTBUILDER_FIELD_ADVANCE_ENCRYPTION_WHMCSKEY'
+				3 => 'COM_COMPONENTBUILDER_FIELD_BASIC_ENCRYPTION_LOCALDBKEY',
+				5 => 'COM_COMPONENTBUILDER_FIELD_MEDIUM_ENCRYPTION_LOCALFILEKEY',
+				4 => 'COM_COMPONENTBUILDER_FIELD_WHMCSKEY_ENCRYPTION',
+				6 => 'COM_COMPONENTBUILDER_FIELD_EXPERT_MODE_CUSTOM'
 			);
 			// Now check if value is found in this array
 			if (isset($storeArray[$value]) && ComponentbuilderHelper::checkString($storeArray[$value]))
@@ -286,22 +435,40 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			}
 		}
 		return $value;
-	} 
+	}
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
 	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 * @param   array    $options   Optional array of options for the form creation.
 	 *
 	 * @return  mixed  A JForm object on success, false on failure
 	 *
 	 * @since   1.6
 	 */
-	public function getForm($data = array(), $loadData = true)
+	public function getForm($data = array(), $loadData = true, $options = array('control' => 'jform'))
 	{
+		// set load data option
+		$options['load_data'] = $loadData;
+		// check if xpath was set in options
+		$xpath = false;
+		if (isset($options['xpath']))
+		{
+			$xpath = $options['xpath'];
+			unset($options['xpath']);
+		}
+		// check if clear form was set in options
+		$clear = false;
+		if (isset($options['clear']))
+		{
+			$clear = $options['clear'];
+			unset($options['clear']);
+		}
+
 		// Get the form.
-		$form = $this->loadForm('com_componentbuilder.fieldtype', 'fieldtype', array('control' => 'jform', 'load_data' => $loadData));
+		$form = $this->loadForm('com_componentbuilder.fieldtype', 'fieldtype', $options, $clear, $xpath);
 
 		if (empty($form))
 		{
@@ -362,15 +529,25 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		// Only load these values if no id is found
 		if (0 == $id)
 		{
-			// Set redirected field name
-			$redirectedField = $jinput->get('ref', null, 'STRING');
-			// Set redirected field value
-			$redirectedValue = $jinput->get('refid', 0, 'INT');
+			// Set redirected view name
+			$redirectedView = $jinput->get('ref', null, 'STRING');
+			// Set field name (or fall back to view name)
+			$redirectedField = $jinput->get('field', $redirectedView, 'STRING');
+			// Set redirected view id
+			$redirectedId = $jinput->get('refid', 0, 'INT');
+			// Set field id (or fall back to redirected view id)
+			$redirectedValue = $jinput->get('field_id', $redirectedId, 'INT');
 			if (0 != $redirectedValue && $redirectedField)
 			{
 				// Now set the local-redirected field default value
 				$form->setValue($redirectedField, null, $redirectedValue);
 			}
+		}
+
+		// Only load the GUID if new item (or empty)
+		if (0 == $id || !($val = $form->getValue('guid')))
+		{
+			$form->setValue('guid', null, ComponentbuilderHelper::GUID());
 		}
 
 		return $form;
@@ -423,7 +600,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	protected function canEditState($record)
 	{
 		$user = JFactory::getUser();
-		$recordId	= (!empty($record->id)) ? $record->id : 0;
+		$recordId = (!empty($record->id)) ? $record->id : 0;
 
 		if ($recordId)
 		{
@@ -528,10 +705,48 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		if (empty($data))
 		{
 			$data = $this->getItem();
+			// run the perprocess of the data
+			$this->preprocessData('com_componentbuilder.fieldtype', $data);
 		}
 
 		return $data;
-	} 
+	}
+
+	/**
+	 * Method to validate the form data.
+	 *
+	 * @param   JForm   $form   The form to validate against.
+	 * @param   array   $data   The data to validate.
+	 * @param   string  $group  The name of the field group to validate.
+	 *
+	 * @return  mixed  Array of filtered data if valid, false otherwise.
+	 *
+	 * @see     JFormRule
+	 * @see     JFilterInput
+	 * @since   12.2
+	 */
+	public function validate($form, $data, $group = null)
+	{
+		// check if the not_required field is set
+		if (isset($data['not_required']) && ComponentbuilderHelper::checkString($data['not_required']))
+		{
+			$requiredFields = (array) explode(',',(string) $data['not_required']);
+			$requiredFields = array_unique($requiredFields);
+			// now change the required field attributes value
+			foreach ($requiredFields as $requiredField)
+			{
+				// make sure there is a string value
+				if (ComponentbuilderHelper::checkString($requiredField))
+				{
+					// change to false
+					$form->setFieldAttribute($requiredField, 'required', 'false');
+					// also clear the data set
+					$data[$requiredField] = '';
+				}
+			}
+		}
+		return parent::validate($form, $data, $group);
+	}
 
 	/**
 	 * Method to get the unique fields of this table.
@@ -540,9 +755,9 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function getUniqeFields()
+	protected function getUniqueFields()
 	{
-		return false;
+		return array('guid');
 	}
 	
 	/**
@@ -599,7 +814,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	{
 		// Sanitize ids.
 		$pks = array_unique($pks);
-		JArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($pks);
 
 		// Remove any values of zero.
 		if (array_search(0, $pks, true))
@@ -640,7 +855,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 
 		if (!empty($commands['move_copy']))
 		{
-			$cmd = JArrayHelper::getValue($commands, 'move_copy', 'c');
+			$cmd = ArrayHelper::getValue($commands, 'move_copy', 'c');
 
 			if ($cmd == 'c')
 			{
@@ -689,7 +904,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	 *
 	 * @return  mixed  An array of new IDs on success, boolean false on failure.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchCopy($values, $pks, $contexts)
 	{
@@ -699,8 +914,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$this->user 		= JFactory::getUser();
 			$this->table 		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('fieldtype');
 		}
 
@@ -709,8 +922,8 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			return false;
 		}
 
-		// get list of uniqe fields
-		$uniqeFields = $this->getUniqeFields();
+		// get list of unique fields
+		$uniqueFields = $this->getUniqueFields();
 		// remove move_copy from array
 		unset($values['move_copy']);
 
@@ -740,7 +953,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		}
 
 		$newIds = array();
-
 		// Parent exists so let's proceed
 		while (!empty($pks))
 		{
@@ -750,17 +962,11 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$this->table->reset();
 
 			// only allow copy if user may edit this item.
-
 			if (!$this->user->authorise('fieldtype.edit', $contexts[$pk]))
-
 			{
-
 				// Not fatal error
-
 				$this->setError(JText::sprintf('JLIB_APPLICATION_ERROR_BATCH_MOVE_ROW_NOT_FOUND', $pk));
-
 				continue;
-
 			}
 
 			// Check that the row actually exists
@@ -770,7 +976,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -793,12 +998,12 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				}
 			}
 
-			// update all uniqe fields
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// update all unique fields
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$this->table->$uniqeField = $this->generateUniqe($uniqeField,$this->table->$uniqeField);
+					$this->table->$uniqueField = $this->generateUnique($uniqueField,$this->table->$uniqueField);
 				}
 			}
 
@@ -806,7 +1011,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$this->table->id = 0;
 
 			// TODO: Deal with ordering?
-			// $this->table->ordering	= 1;
+			// $this->table->ordering = 1;
 
 			// Check the row.
 			if (!$this->table->check())
@@ -840,7 +1045,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 		$this->cleanCache();
 
 		return $newIds;
-	} 
+	}
 
 	/**
 	 * Batch move items to a new category
@@ -851,7 +1056,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	 *
 	 * @return  boolean  True if successful, false otherwise and internal error is set.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchMove($values, $pks, $contexts)
 	{
@@ -861,8 +1066,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$this->user		= JFactory::getUser();
 			$this->table		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('fieldtype');
 		}
 
@@ -902,7 +1105,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			if (!$this->user->authorise('fieldtype.edit', $contexts[$pk]))
 			{
 				$this->setError(JText::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
-
 				return false;
 			}
 
@@ -913,7 +1115,6 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -992,7 +1193,35 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$metadata = new JRegistry;
 			$metadata->loadArray($data['metadata']);
 			$data['metadata'] = (string) $metadata;
-		} 
+		}
+
+
+		// Set the GUID if empty or not valid
+		if (empty($data['guid']) && $data['id'] > 0)
+		{
+			// get the existing one
+			$data['guid'] = (string) ComponentbuilderHelper::getVar('fieldtype', $data['id'], 'id', 'guid');
+		}
+		// Set the GUID if empty or not valid
+		while (!ComponentbuilderHelper::validGUID($data['guid'], "fieldtype", $data['id']))
+		{
+			// must always be set
+			$data['guid'] = (string) ComponentbuilderHelper::GUID();
+		}
+
+
+		// Set the properties items to data.
+		if (isset($data['properties']) && is_array($data['properties']))
+		{
+			$properties = new JRegistry;
+			$properties->loadArray($data['properties']);
+			$data['properties'] = (string) $properties;
+		}
+		elseif (!isset($data['properties']))
+		{
+			// Set the empty properties to data
+			$data['properties'] = '';
+		}
         
 		// Set the Params Items to data
 		if (isset($data['params']) && is_array($data['params']))
@@ -1002,16 +1231,16 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 			$data['params'] = (string) $params;
 		}
 
-		// Alter the uniqe field for save as copy
+		// Alter the unique field for save as copy
 		if ($input->get('task') === 'save2copy')
 		{
-			// Automatic handling of other uniqe fields
-			$uniqeFields = $this->getUniqeFields();
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// Automatic handling of other unique fields
+			$uniqueFields = $this->getUniqueFields();
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$data[$uniqeField] = $this->generateUniqe($uniqeField,$data[$uniqeField]);
+					$data[$uniqueField] = $this->generateUnique($uniqueField,$data[$uniqueField]);
 				}
 			}
 		}
@@ -1024,7 +1253,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	}
 	
 	/**
-	 * Method to generate a uniqe value.
+	 * Method to generate a unique value.
 	 *
 	 * @param   string  $field name.
 	 * @param   string  $value data.
@@ -1033,28 +1262,28 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function generateUniqe($field,$value)
+	protected function generateUnique($field,$value)
 	{
 
-		// set field value uniqe 
+		// set field value unique
 		$table = $this->getTable();
 
 		while ($table->load(array($field => $value)))
 		{
-			$value = JString::increment($value);
+			$value = StringHelper::increment($value);
 		}
 
 		return $value;
 	}
 
 	/**
-	* Method to change the title & alias.
-	*
-	* @param   string   $title        The title.
-	*
-	* @return	array  Contains the modified title and alias.
-	*
-	*/
+	 * Method to change the title
+	 *
+	 * @param   string   $title   The title.
+	 *
+	 * @return	array  Contains the modified title and alias.
+	 *
+	 */
 	protected function _generateNewTitle($title)
 	{
 
@@ -1063,7 +1292,7 @@ class ComponentbuilderModelFieldtype extends JModelAdmin
 
 		while ($table->load(array('title' => $title)))
 		{
-			$title = JString::increment($title);
+			$title = StringHelper::increment($title);
 		}
 
 		return $title;

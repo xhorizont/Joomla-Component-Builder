@@ -1,25 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@package		Component Builder
-	@subpackage		componentbuilder.php
-	@author			Llewellyn van der Merwe <https://www.vdm.io/joomla-component-builder>
-	@my wife		Roline van der Merwe <http://www.vdm.io/>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2018 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -29,22 +17,26 @@ defined('_JEXEC') or die('Restricted access');
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-use Joomla\Registry\Registry;
-
-// import Joomla modelform library
-jimport('joomla.application.component.modeladmin');
+###ADMIN_VIEW_MODEL_HEADER###
 
 /**
  * ###Component### ###View### Model
  */
 class ###Component###Model###View### extends JModelAdmin
-{    
+{
+	/**
+	 * The tab layout fields array.
+	 *
+	 * @var      array
+	 */
+	protected $tabLayoutFields = ###TABLAYOUTFIELDSARRAY###;
+
 	/**
 	 * @var        string    The prefix to use with controller messages.
 	 * @since   1.6
 	 */
 	protected $text_prefix = 'COM_###COMPONENT###';
-    
+
 	/**
 	 * The type alias for this content type.
 	 *
@@ -66,6 +58,9 @@ class ###Component###Model###View### extends JModelAdmin
 	 */
 	public function getTable($type = '###view###', $prefix = '###Component###Table', $config = array())
 	{
+		// add table path for when model gets used from other component
+		$this->addTablePath(JPATH_ADMINISTRATOR . '/components/com_###component###/tables');
+		// get instance of the table
 		return JTable::getInstance($type, $prefix, $config);
 	}###ADMIN_CUSTOM_BUTTONS_METHOD###
     
@@ -82,7 +77,7 @@ class ###Component###Model###View### extends JModelAdmin
 	{###LICENSE_LOCKED_CHECK###
 		if ($item = parent::getItem($pk))
 		{
-			if (!empty($item->params))
+			if (!empty($item->params) && !is_array($item->params))
 			{
 				// Convert the params field to an array.
 				$registry = new Registry;
@@ -106,20 +101,23 @@ class ###Component###Model###View### extends JModelAdmin
 		}###LINKEDVIEWGLOBAL###
 
 		return $item;
-	}###LINKEDVIEWMETHODS### ###LICENSE_LOCKED_SET_BOOL###
+	}###LINKEDVIEWMETHODS######LICENSE_LOCKED_SET_BOOL###
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
 	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 * @param   array    $options   Optional array of options for the form creation.
 	 *
 	 * @return  mixed  A JForm object on success, false on failure
 	 *
 	 * @since   1.6
 	 */
-	public function getForm($data = array(), $loadData = true)
-	{###JMODELADMIN_GETFORM###
+	public function getForm($data = array(), $loadData = true, $options = array('control' => 'jform'))
+	{
+		// set load data option
+		$options['load_data'] = $loadData;###JMODELADMIN_GETFORM###
 	}
 
 	/**
@@ -244,10 +242,12 @@ class ###Component###Model###View### extends JModelAdmin
 		if (empty($data))
 		{
 			$data = $this->getItem();
+			// run the perprocess of the data
+			$this->preprocessData('com_###component###.###view###', $data);
 		}
 
 		return $data;
-	}###VALIDATIONFIX### ###UNIQUEFIELDS###
+	}###VALIDATIONFIX######UNIQUEFIELDS###
 	
 	/**
 	 * Method to delete one or more records.
@@ -303,7 +303,7 @@ class ###Component###Model###View### extends JModelAdmin
 	{
 		// Sanitize ids.
 		$pks = array_unique($pks);
-		JArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($pks);
 
 		// Remove any values of zero.
 		if (array_search(0, $pks, true))
@@ -344,7 +344,7 @@ class ###Component###Model###View### extends JModelAdmin
 
 		if (!empty($commands['move_copy']))
 		{
-			$cmd = JArrayHelper::getValue($commands, 'move_copy', 'c');
+			$cmd = ArrayHelper::getValue($commands, 'move_copy', 'c');
 
 			if ($cmd == 'c')
 			{
@@ -382,7 +382,7 @@ class ###Component###Model###View### extends JModelAdmin
 		$this->cleanCache();
 
 		return true;
-	}###MODEL_BATCH_COPY### ###MODEL_BATCH_MOVE###
+	}###MODEL_BATCH_COPY######MODEL_BATCH_MOVE###
 	
 	/**
 	 * Method to save the form data.
@@ -406,7 +406,7 @@ class ###Component###Model###View### extends JModelAdmin
 			$metadata = new JRegistry;
 			$metadata->loadArray($data['metadata']);
 			$data['metadata'] = (string) $metadata;
-		}###CHECKBOX_SAVE### ###METHOD_ITEM_SAVE###
+		}###CHECKBOX_SAVE######METHOD_ITEM_SAVE###
         
 		// Set the Params Items to data
 		if (isset($data['params']) && is_array($data['params']))
@@ -424,7 +424,7 @@ class ###Component###Model###View### extends JModelAdmin
 	}
 	
 	/**
-	 * Method to generate a uniqe value.
+	 * Method to generate a unique value.
 	 *
 	 * @param   string  $field name.
 	 * @param   string  $value data.
@@ -433,15 +433,15 @@ class ###Component###Model###View### extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function generateUniqe($field,$value)
+	protected function generateUnique($field,$value)
 	{
 
-		// set field value uniqe 
+		// set field value unique
 		$table = $this->getTable();
 
 		while ($table->load(array($field => $value)))
 		{
-			$value = JString::increment($value);
+			$value = StringHelper::increment($value);
 		}
 
 		return $value;

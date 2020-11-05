@@ -1,47 +1,107 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 81 of this MVC
-	@build			15th January, 2017
-	@created		21st May, 2015
-	@package		Component Builder
-	@subpackage		dynamic_get.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
 use Joomla\Registry\Registry;
-
-// import Joomla modelform library
-jimport('joomla.application.component.modeladmin');
+use Joomla\String\StringHelper;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Componentbuilder Dynamic_get Model
  */
 class ComponentbuilderModelDynamic_get extends JModelAdmin
-{    
+{
+	/**
+	 * The tab layout fields array.
+	 *
+	 * @var      array
+	 */
+	protected $tabLayoutFields = array(
+		'main' => array(
+			'left' => array(
+				'main_source',
+				'view_table_main',
+				'db_table_main',
+				'select_all',
+				'view_selection',
+				'db_selection'
+			),
+			'right' => array(
+				'plugin_events'
+			),
+			'fullwidth' => array(
+				'php_custom_get',
+				'note_linked_to_notice'
+			),
+			'above' => array(
+				'name',
+				'gettype',
+				'getcustom',
+				'pagination'
+			),
+			'under' => array(
+				'not_required'
+			)
+		),
+		'custom_script' => array(
+			'fullwidth' => array(
+				'add_php_before_getitem',
+				'php_before_getitem',
+				'add_php_after_getitem',
+				'php_after_getitem',
+				'add_php_getlistquery',
+				'php_getlistquery',
+				'add_php_before_getitems',
+				'php_before_getitems',
+				'add_php_after_getitems',
+				'php_after_getitems',
+				'add_php_router_parse',
+				'php_router_parse'
+			)
+		),
+		'abacus' => array(
+			'left' => array(
+				'addcalculation'
+			),
+			'fullwidth' => array(
+				'note_calculation_item',
+				'note_calculation_items',
+				'php_calculation'
+			)
+		),
+		'joint' => array(
+			'fullwidth' => array(
+				'join_view_table',
+				'join_db_table'
+			)
+		),
+		'tweak' => array(
+			'fullwidth' => array(
+				'filter',
+				'where',
+				'order',
+				'group',
+				'global'
+			)
+		)
+	);
+
 	/**
 	 * @var        string    The prefix to use with controller messages.
 	 * @since   1.6
 	 */
 	protected $text_prefix = 'COM_COMPONENTBUILDER';
-    
+
 	/**
 	 * The type alias for this content type.
 	 *
@@ -63,8 +123,60 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	 */
 	public function getTable($type = 'dynamic_get', $prefix = 'ComponentbuilderTable', $config = array())
 	{
+		// add table path for when model gets used from other component
+		$this->addTablePath(JPATH_ADMINISTRATOR . '/components/com_componentbuilder/tables');
+		// get instance of the table
 		return JTable::getInstance($type, $prefix, $config);
 	}
+
+
+	/**
+	 * get VDM internal session key
+	 *
+	 * @return  string  the session key
+	 *
+	 */
+	public function getVDM()
+	{
+		if (!isset($this->vastDevMod))
+		{
+			$_id = 0; // new item probably (since it was not set in the getItem method)
+
+			if (empty($_id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $_id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('dynamic_get__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'dynamic_get__'.$id);
+				ComponentbuilderHelper::set('dynamic_get__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+		}
+		return $this->vastDevMod;
+	}
+
     
 	/**
 	 * Method to get a single record.
@@ -79,7 +191,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	{
 		if ($item = parent::getItem($pk))
 		{
-			if (!empty($item->params))
+			if (!empty($item->params) && !is_array($item->params))
 			{
 				// Convert the params field to an array.
 				$registry = new Registry;
@@ -95,10 +207,10 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				$item->metadata = $registry->toArray();
 			}
 
-			if (!empty($item->php_after_getitem))
+			if (!empty($item->php_router_parse))
 			{
-				// base64 Decode php_after_getitem.
-				$item->php_after_getitem = base64_decode($item->php_after_getitem);
+				// base64 Decode php_router_parse.
+				$item->php_router_parse = base64_decode($item->php_router_parse);
 			}
 
 			if (!empty($item->php_before_getitems))
@@ -107,10 +219,16 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				$item->php_before_getitems = base64_decode($item->php_before_getitems);
 			}
 
-			if (!empty($item->php_before_getitem))
+			if (!empty($item->php_after_getitems))
 			{
-				// base64 Decode php_before_getitem.
-				$item->php_before_getitem = base64_decode($item->php_before_getitem);
+				// base64 Decode php_after_getitems.
+				$item->php_after_getitems = base64_decode($item->php_after_getitems);
+			}
+
+			if (!empty($item->php_after_getitem))
+			{
+				// base64 Decode php_after_getitem.
+				$item->php_after_getitem = base64_decode($item->php_after_getitem);
 			}
 
 			if (!empty($item->php_getlistquery))
@@ -119,10 +237,10 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				$item->php_getlistquery = base64_decode($item->php_getlistquery);
 			}
 
-			if (!empty($item->php_after_getitems))
+			if (!empty($item->php_custom_get))
 			{
-				// base64 Decode php_after_getitems.
-				$item->php_after_getitems = base64_decode($item->php_after_getitems);
+				// base64 Decode php_custom_get.
+				$item->php_custom_get = base64_decode($item->php_custom_get);
 			}
 
 			if (!empty($item->php_calculation))
@@ -131,10 +249,141 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				$item->php_calculation = base64_decode($item->php_calculation);
 			}
 
-			if (!empty($item->php_custom_get))
+			if (!empty($item->php_before_getitem))
 			{
-				// base64 Decode php_custom_get.
-				$item->php_custom_get = base64_decode($item->php_custom_get);
+				// base64 Decode php_before_getitem.
+				$item->php_before_getitem = base64_decode($item->php_before_getitem);
+			}
+
+			if (!empty($item->join_db_table))
+			{
+				// Convert the join_db_table field to an array.
+				$join_db_table = new Registry;
+				$join_db_table->loadString($item->join_db_table);
+				$item->join_db_table = $join_db_table->toArray();
+			}
+
+			if (!empty($item->filter))
+			{
+				// Convert the filter field to an array.
+				$filter = new Registry;
+				$filter->loadString($item->filter);
+				$item->filter = $filter->toArray();
+			}
+
+			if (!empty($item->where))
+			{
+				// Convert the where field to an array.
+				$where = new Registry;
+				$where->loadString($item->where);
+				$item->where = $where->toArray();
+			}
+
+			if (!empty($item->order))
+			{
+				// Convert the order field to an array.
+				$order = new Registry;
+				$order->loadString($item->order);
+				$item->order = $order->toArray();
+			}
+
+			if (!empty($item->group))
+			{
+				// Convert the group field to an array.
+				$group = new Registry;
+				$group->loadString($item->group);
+				$item->group = $group->toArray();
+			}
+
+			if (!empty($item->global))
+			{
+				// Convert the global field to an array.
+				$global = new Registry;
+				$global->loadString($item->global);
+				$item->global = $global->toArray();
+			}
+
+			if (!empty($item->join_view_table))
+			{
+				// Convert the join_view_table field to an array.
+				$join_view_table = new Registry;
+				$join_view_table->loadString($item->join_view_table);
+				$item->join_view_table = $join_view_table->toArray();
+			}
+
+			if (!empty($item->plugin_events))
+			{
+				// JSON Decode plugin_events.
+				$item->plugin_events = json_decode($item->plugin_events);
+			}
+
+
+			if (empty($item->id))
+			{
+				$id = 0;
+			}
+			else
+			{
+				$id = $item->id;
+			}
+			// set the id and view name to session
+			if ($vdm = ComponentbuilderHelper::get('dynamic_get__'.$id))
+			{
+				$this->vastDevMod = $vdm;
+			}
+			else
+			{
+				// set the vast development method key
+				$this->vastDevMod = ComponentbuilderHelper::randomkey(50);
+				ComponentbuilderHelper::set($this->vastDevMod, 'dynamic_get__'.$id);
+				ComponentbuilderHelper::set('dynamic_get__'.$id, $this->vastDevMod);
+				// set a return value if found
+				$jinput = JFactory::getApplication()->input;
+				$return = $jinput->get('return', null, 'base64');
+				ComponentbuilderHelper::set($this->vastDevMod . '__return', $return);
+				// set a GUID value if found
+				if (isset($item) && ComponentbuilderHelper::checkObject($item) && isset($item->guid)
+					&& method_exists('ComponentbuilderHelper', 'validGUID')
+					&& ComponentbuilderHelper::validGUID($item->guid))
+				{
+					ComponentbuilderHelper::set($this->vastDevMod . '__guid', $item->guid);
+				}
+			}
+
+			// update the fields
+			$objectUpdate = new stdClass();
+			$objectUpdate->id = (int) $item->id;
+			// repeatable values to check
+			$arrayChecker = array(
+				'join_view_table' => 'view_table',
+				'join_db_table' => 'db_table',
+				'filter' => 'filter_type',
+				'where' => 'table_key',
+				'order' => 'table_key',
+				'global' => 'name'
+			);
+			foreach ($arrayChecker as $_value => $checker)
+			{
+				// check what type of array we have here (should be subform... but just in case)
+				// This could happen due to huge data sets
+				if (isset($item->{$_value}) && isset($item->{$_value}[$checker]))
+				{
+					$bucket = array();
+					foreach($item->{$_value} as $option => $values)
+					{
+						foreach($values as $nr => $value)
+						{
+							$bucket[$_value.$nr][$option] = $value;
+						}
+					}
+					$item->{$_value} = $bucket;
+					$objectUpdate->{$_value} = json_encode($bucket);
+				}
+			}
+			// be sure to update the table if we found repeatable fields that are still not converted
+			if (count((array) $objectUpdate) > 1)
+			{
+				$this->_db->updateObject('#__componentbuilder_dynamic_get', $objectUpdate, 'id');
 			}
 			
 			if (!empty($item->id))
@@ -145,22 +394,40 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 		}
 
 		return $item;
-	} 
+	}
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
 	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 * @param   array    $options   Optional array of options for the form creation.
 	 *
 	 * @return  mixed  A JForm object on success, false on failure
 	 *
 	 * @since   1.6
 	 */
-	public function getForm($data = array(), $loadData = true)
+	public function getForm($data = array(), $loadData = true, $options = array('control' => 'jform'))
 	{
+		// set load data option
+		$options['load_data'] = $loadData;
+		// check if xpath was set in options
+		$xpath = false;
+		if (isset($options['xpath']))
+		{
+			$xpath = $options['xpath'];
+			unset($options['xpath']);
+		}
+		// check if clear form was set in options
+		$clear = false;
+		if (isset($options['clear']))
+		{
+			$clear = $options['clear'];
+			unset($options['clear']);
+		}
+
 		// Get the form.
-		$form = $this->loadForm('com_componentbuilder.dynamic_get', 'dynamic_get', array('control' => 'jform', 'load_data' => $loadData));
+		$form = $this->loadForm('com_componentbuilder.dynamic_get', 'dynamic_get', $options, $clear, $xpath);
 
 		if (empty($form))
 		{
@@ -221,10 +488,14 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 		// Only load these values if no id is found
 		if (0 == $id)
 		{
-			// Set redirected field name
-			$redirectedField = $jinput->get('ref', null, 'STRING');
-			// Set redirected field value
-			$redirectedValue = $jinput->get('refid', 0, 'INT');
+			// Set redirected view name
+			$redirectedView = $jinput->get('ref', null, 'STRING');
+			// Set field name (or fall back to view name)
+			$redirectedField = $jinput->get('field', $redirectedView, 'STRING');
+			// Set redirected view id
+			$redirectedId = $jinput->get('refid', 0, 'INT');
+			// Set field id (or fall back to redirected view id)
+			$redirectedValue = $jinput->get('field_id', $redirectedId, 'INT');
 			if (0 != $redirectedValue && $redirectedField)
 			{
 				// Now set the local-redirected field default value
@@ -232,6 +503,35 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			}
 		}
 
+		// update all editors to use this components global editor
+		$global_editor = JComponentHelper::getParams('com_componentbuilder')->get('editor', 'none');
+		// now get all the editor fields
+		$editors = $form->getXml()->xpath("//field[@type='editor']");
+		// check if we found any
+		if (ComponentbuilderHelper::checkArray($editors))
+		{
+			foreach ($editors as $editor)
+			{
+				// get the field names
+				$name = (string) $editor['name'];
+				// set the field editor value (with none as fallback)
+				$form->setFieldAttribute($name, 'editor', $global_editor . '|none');
+			}
+		}
+
+
+		// Only load the GUID if new item (or empty)
+		if (0 == $id || !($val = $form->getValue('guid')))
+		{
+			$form->setValue('guid', null, ComponentbuilderHelper::GUID());
+		}
+
+
+		// update the join_view_table (sub form) layout
+		$form->setFieldAttribute('join_view_table', 'layout', ComponentbuilderHelper::getSubformLayout('dynamic_get', 'join_view_table'));
+
+		// update the join_db_table (sub form) layout
+		$form->setFieldAttribute('join_db_table', 'layout', ComponentbuilderHelper::getSubformLayout('dynamic_get', 'join_db_table'));
 		return $form;
 	}
 
@@ -282,7 +582,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	protected function canEditState($record)
 	{
 		$user = JFactory::getUser();
-		$recordId	= (!empty($record->id)) ? $record->id : 0;
+		$recordId = (!empty($record->id)) ? $record->id : 0;
 
 		if ($recordId)
 		{
@@ -387,28 +687,30 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 		if (empty($data))
 		{
 			$data = $this->getItem();
+			// run the perprocess of the data
+			$this->preprocessData('com_componentbuilder.dynamic_get', $data);
 		}
 
 		return $data;
 	}
 
 	/**
-	* Method to validate the form data.
-	*
-	* @param   JForm   $form   The form to validate against.
-	* @param   array   $data   The data to validate.
-	* @param   string  $group  The name of the field group to validate.
-	*
-	* @return  mixed  Array of filtered data if valid, false otherwise.
-	*
-	* @see     JFormRule
-	* @see     JFilterInput
-	* @since   12.2
-	*/
+	 * Method to validate the form data.
+	 *
+	 * @param   JForm   $form   The form to validate against.
+	 * @param   array   $data   The data to validate.
+	 * @param   string  $group  The name of the field group to validate.
+	 *
+	 * @return  mixed  Array of filtered data if valid, false otherwise.
+	 *
+	 * @see     JFormRule
+	 * @see     JFilterInput
+	 * @since   12.2
+	 */
 	public function validate($form, $data, $group = null)
 	{
 		// check if the not_required field is set
-		if (ComponentbuilderHelper::checkString($data['not_required']))
+		if (isset($data['not_required']) && ComponentbuilderHelper::checkString($data['not_required']))
 		{
 			$requiredFields = (array) explode(',',(string) $data['not_required']);
 			$requiredFields = array_unique($requiredFields);
@@ -426,7 +728,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			}
 		}
 		return parent::validate($form, $data, $group);
-	} 
+	}
 
 	/**
 	 * Method to get the unique fields of this table.
@@ -435,9 +737,9 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function getUniqeFields()
+	protected function getUniqueFields()
 	{
-		return false;
+		return array('guid');
 	}
 	
 	/**
@@ -494,7 +796,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	{
 		// Sanitize ids.
 		$pks = array_unique($pks);
-		JArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($pks);
 
 		// Remove any values of zero.
 		if (array_search(0, $pks, true))
@@ -535,7 +837,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 
 		if (!empty($commands['move_copy']))
 		{
-			$cmd = JArrayHelper::getValue($commands, 'move_copy', 'c');
+			$cmd = ArrayHelper::getValue($commands, 'move_copy', 'c');
 
 			if ($cmd == 'c')
 			{
@@ -584,7 +886,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	 *
 	 * @return  mixed  An array of new IDs on success, boolean false on failure.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchCopy($values, $pks, $contexts)
 	{
@@ -594,8 +896,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$this->user 		= JFactory::getUser();
 			$this->table 		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('dynamic_get');
 		}
 
@@ -604,8 +904,8 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			return false;
 		}
 
-		// get list of uniqe fields
-		$uniqeFields = $this->getUniqeFields();
+		// get list of unique fields
+		$uniqueFields = $this->getUniqueFields();
 		// remove move_copy from array
 		unset($values['move_copy']);
 
@@ -620,7 +920,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 		}
 
 		$newIds = array();
-
 		// Parent exists so let's proceed
 		while (!empty($pks))
 		{
@@ -630,17 +929,11 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$this->table->reset();
 
 			// only allow copy if user may edit this item.
-
 			if (!$this->user->authorise('dynamic_get.edit', $contexts[$pk]))
-
 			{
-
 				// Not fatal error
-
 				$this->setError(JText::sprintf('JLIB_APPLICATION_ERROR_BATCH_MOVE_ROW_NOT_FOUND', $pk));
-
 				continue;
-
 			}
 
 			// Check that the row actually exists
@@ -650,7 +943,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -661,7 +953,11 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				}
 			}
 
-			$this->table->name = $this->generateUniqe('name',$this->table->name);
+			// Only for strings
+			if (ComponentbuilderHelper::checkString($this->table->name) && !is_numeric($this->table->name))
+			{
+				$this->table->name = $this->generateUnique('name',$this->table->name);
+			}
 
 			// insert all set values
 			if (ComponentbuilderHelper::checkArray($values))
@@ -675,12 +971,12 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				}
 			}
 
-			// update all uniqe fields
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// update all unique fields
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$this->table->$uniqeField = $this->generateUniqe($uniqeField,$this->table->$uniqeField);
+					$this->table->$uniqueField = $this->generateUnique($uniqueField,$this->table->$uniqueField);
 				}
 			}
 
@@ -688,7 +984,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$this->table->id = 0;
 
 			// TODO: Deal with ordering?
-			// $this->table->ordering	= 1;
+			// $this->table->ordering = 1;
 
 			// Check the row.
 			if (!$this->table->check())
@@ -722,7 +1018,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 		$this->cleanCache();
 
 		return $newIds;
-	} 
+	}
 
 	/**
 	 * Batch move items to a new category
@@ -733,7 +1029,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	 *
 	 * @return  boolean  True if successful, false otherwise and internal error is set.
 	 *
-	 * @since	12.2
+	 * @since 12.2
 	 */
 	protected function batchMove($values, $pks, $contexts)
 	{
@@ -743,8 +1039,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$this->user		= JFactory::getUser();
 			$this->table		= $this->getTable();
 			$this->tableClassName	= get_class($this->table);
-			$this->contentType	= new JUcmType;
-			$this->type		= $this->contentType->getTypeByTable($this->tableClassName);
 			$this->canDo		= ComponentbuilderHelper::getActions('dynamic_get');
 		}
 
@@ -768,7 +1062,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			if (!$this->user->authorise('dynamic_get.edit', $contexts[$pk]))
 			{
 				$this->setError(JText::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
-
 				return false;
 			}
 
@@ -779,7 +1072,6 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 				{
 					// Fatal error
 					$this->setError($error);
-
 					return false;
 				}
 				else
@@ -858,12 +1150,124 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$metadata = new JRegistry;
 			$metadata->loadArray($data['metadata']);
 			$data['metadata'] = (string) $metadata;
-		} 
+		}
 
-		// Set the php_after_getitem string to base64 string.
-		if (isset($data['php_after_getitem']))
+
+		// Set the GUID if empty or not valid
+		if (empty($data['guid']) && $data['id'] > 0)
 		{
-			$data['php_after_getitem'] = base64_encode($data['php_after_getitem']);
+			// get the existing one
+			$data['guid'] = (string) ComponentbuilderHelper::getVar('dynamic_get', $data['id'], 'id', 'guid');
+		}
+		// Set the GUID if empty or not valid
+		while (!ComponentbuilderHelper::validGUID($data['guid'], "dynamic_get", $data['id']))
+		{
+			// must always be set
+			$data['guid'] = (string) ComponentbuilderHelper::GUID();
+		}
+
+
+		// Set the join_db_table items to data.
+		if (isset($data['join_db_table']) && is_array($data['join_db_table']))
+		{
+			$join_db_table = new JRegistry;
+			$join_db_table->loadArray($data['join_db_table']);
+			$data['join_db_table'] = (string) $join_db_table;
+		}
+		elseif (!isset($data['join_db_table']))
+		{
+			// Set the empty join_db_table to data
+			$data['join_db_table'] = '';
+		}
+
+		// Set the filter items to data.
+		if (isset($data['filter']) && is_array($data['filter']))
+		{
+			$filter = new JRegistry;
+			$filter->loadArray($data['filter']);
+			$data['filter'] = (string) $filter;
+		}
+		elseif (!isset($data['filter']))
+		{
+			// Set the empty filter to data
+			$data['filter'] = '';
+		}
+
+		// Set the where items to data.
+		if (isset($data['where']) && is_array($data['where']))
+		{
+			$where = new JRegistry;
+			$where->loadArray($data['where']);
+			$data['where'] = (string) $where;
+		}
+		elseif (!isset($data['where']))
+		{
+			// Set the empty where to data
+			$data['where'] = '';
+		}
+
+		// Set the order items to data.
+		if (isset($data['order']) && is_array($data['order']))
+		{
+			$order = new JRegistry;
+			$order->loadArray($data['order']);
+			$data['order'] = (string) $order;
+		}
+		elseif (!isset($data['order']))
+		{
+			// Set the empty order to data
+			$data['order'] = '';
+		}
+
+		// Set the group items to data.
+		if (isset($data['group']) && is_array($data['group']))
+		{
+			$group = new JRegistry;
+			$group->loadArray($data['group']);
+			$data['group'] = (string) $group;
+		}
+		elseif (!isset($data['group']))
+		{
+			// Set the empty group to data
+			$data['group'] = '';
+		}
+
+		// Set the global items to data.
+		if (isset($data['global']) && is_array($data['global']))
+		{
+			$global = new JRegistry;
+			$global->loadArray($data['global']);
+			$data['global'] = (string) $global;
+		}
+		elseif (!isset($data['global']))
+		{
+			// Set the empty global to data
+			$data['global'] = '';
+		}
+
+		// Set the join_view_table items to data.
+		if (isset($data['join_view_table']) && is_array($data['join_view_table']))
+		{
+			$join_view_table = new JRegistry;
+			$join_view_table->loadArray($data['join_view_table']);
+			$data['join_view_table'] = (string) $join_view_table;
+		}
+		elseif (!isset($data['join_view_table']))
+		{
+			// Set the empty join_view_table to data
+			$data['join_view_table'] = '';
+		}
+
+		// Set the plugin_events string to JSON string.
+		if (isset($data['plugin_events']))
+		{
+			$data['plugin_events'] = (string) json_encode($data['plugin_events']);
+		}
+
+		// Set the php_router_parse string to base64 string.
+		if (isset($data['php_router_parse']))
+		{
+			$data['php_router_parse'] = base64_encode($data['php_router_parse']);
 		}
 
 		// Set the php_before_getitems string to base64 string.
@@ -872,10 +1276,16 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$data['php_before_getitems'] = base64_encode($data['php_before_getitems']);
 		}
 
-		// Set the php_before_getitem string to base64 string.
-		if (isset($data['php_before_getitem']))
+		// Set the php_after_getitems string to base64 string.
+		if (isset($data['php_after_getitems']))
 		{
-			$data['php_before_getitem'] = base64_encode($data['php_before_getitem']);
+			$data['php_after_getitems'] = base64_encode($data['php_after_getitems']);
+		}
+
+		// Set the php_after_getitem string to base64 string.
+		if (isset($data['php_after_getitem']))
+		{
+			$data['php_after_getitem'] = base64_encode($data['php_after_getitem']);
 		}
 
 		// Set the php_getlistquery string to base64 string.
@@ -884,10 +1294,10 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$data['php_getlistquery'] = base64_encode($data['php_getlistquery']);
 		}
 
-		// Set the php_after_getitems string to base64 string.
-		if (isset($data['php_after_getitems']))
+		// Set the php_custom_get string to base64 string.
+		if (isset($data['php_custom_get']))
 		{
-			$data['php_after_getitems'] = base64_encode($data['php_after_getitems']);
+			$data['php_custom_get'] = base64_encode($data['php_custom_get']);
 		}
 
 		// Set the php_calculation string to base64 string.
@@ -896,10 +1306,10 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$data['php_calculation'] = base64_encode($data['php_calculation']);
 		}
 
-		// Set the php_custom_get string to base64 string.
-		if (isset($data['php_custom_get']))
+		// Set the php_before_getitem string to base64 string.
+		if (isset($data['php_before_getitem']))
 		{
-			$data['php_custom_get'] = base64_encode($data['php_custom_get']);
+			$data['php_before_getitem'] = base64_encode($data['php_before_getitem']);
 		}
         
 		// Set the Params Items to data
@@ -910,16 +1320,16 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 			$data['params'] = (string) $params;
 		}
 
-		// Alter the uniqe field for save as copy
+		// Alter the unique field for save as copy
 		if ($input->get('task') === 'save2copy')
 		{
-			// Automatic handling of other uniqe fields
-			$uniqeFields = $this->getUniqeFields();
-			if (ComponentbuilderHelper::checkArray($uniqeFields))
+			// Automatic handling of other unique fields
+			$uniqueFields = $this->getUniqueFields();
+			if (ComponentbuilderHelper::checkArray($uniqueFields))
 			{
-				foreach ($uniqeFields as $uniqeField)
+				foreach ($uniqueFields as $uniqueField)
 				{
-					$data[$uniqeField] = $this->generateUniqe($uniqeField,$data[$uniqeField]);
+					$data[$uniqueField] = $this->generateUnique($uniqueField,$data[$uniqueField]);
 				}
 			}
 		}
@@ -932,7 +1342,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	}
 	
 	/**
-	 * Method to generate a uniqe value.
+	 * Method to generate a unique value.
 	 *
 	 * @param   string  $field name.
 	 * @param   string  $value data.
@@ -941,28 +1351,28 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 	 *
 	 * @since   3.0
 	 */
-	protected function generateUniqe($field,$value)
+	protected function generateUnique($field,$value)
 	{
 
-		// set field value uniqe 
+		// set field value unique
 		$table = $this->getTable();
 
 		while ($table->load(array($field => $value)))
 		{
-			$value = JString::increment($value);
+			$value = StringHelper::increment($value);
 		}
 
 		return $value;
 	}
 
 	/**
-	* Method to change the title & alias.
-	*
-	* @param   string   $title        The title.
-	*
-	* @return	array  Contains the modified title and alias.
-	*
-	*/
+	 * Method to change the title
+	 *
+	 * @param   string   $title   The title.
+	 *
+	 * @return	array  Contains the modified title and alias.
+	 *
+	 */
 	protected function _generateNewTitle($title)
 	{
 
@@ -971,7 +1381,7 @@ class ComponentbuilderModelDynamic_get extends JModelAdmin
 
 		while ($table->load(array('title' => $title)))
 		{
-			$title = JString::increment($title);
+			$title = StringHelper::increment($title);
 		}
 
 		return $title;

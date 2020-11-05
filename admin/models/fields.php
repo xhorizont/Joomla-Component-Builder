@@ -1,33 +1,18 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 37 of this MVC
-	@build			3rd February, 2017
-	@created		30th April, 2015
-	@package		Component Builder
-	@subpackage		fields.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import the Joomla modellist library
-jimport('joomla.application.component.modellist');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Fields Model
@@ -45,14 +30,14 @@ class ComponentbuilderModelFields extends JModelList
 				'a.created_by','created_by',
 				'a.modified_by','modified_by',
 				'a.name','name',
-				'a.fieldtype','fieldtype',
+				'g.name',
 				'a.datatype','datatype',
 				'a.indexes','indexes',
 				'a.null_switch','null_switch',
+				'a.store','store',
 				'c.title','category_title',
 				'c.id', 'category_id',
-				'a.catid', 'catid',
-				'a.store','store'
+				'a.catid', 'catid'
 			);
 		}
 
@@ -88,6 +73,9 @@ class ComponentbuilderModelFields extends JModelList
 		$null_switch = $this->getUserStateFromRequest($this->context . '.filter.null_switch', 'filter_null_switch');
 		$this->setState('filter.null_switch', $null_switch);
 
+		$store = $this->getUserStateFromRequest($this->context . '.filter.store', 'filter_store');
+		$this->setState('filter.store', $store);
+
 		$category = $app->getUserStateFromRequest($this->context . '.filter.category', 'filter_category');
 		$this->setState('filter.category', $category);
 
@@ -96,9 +84,6 @@ class ComponentbuilderModelFields extends JModelList
 
 		$catid = $app->getUserStateFromRequest($this->context . '.filter.catid', 'filter_catid');
 		$this->setState('filter.catid', $catid);
-
-		$store = $this->getUserStateFromRequest($this->context . '.filter.store', 'filter_store');
-		$this->setState('filter.store', $store);
         
 		$sorting = $this->getUserStateFromRequest($this->context . '.filter.sorting', 'filter_sorting', 0, 'int');
 		$this->setState('filter.sorting', $sorting);
@@ -128,20 +113,24 @@ class ComponentbuilderModelFields extends JModelList
 	 * @return  mixed  An array of data items on success, false on failure.
 	 */
 	public function getItems()
-	{ 
+	{
 		// check in items
 		$this->checkInNow();
 
 		// load parent items
 		$items = parent::getItems();
 
-		// set values to display correctly.
+		// Set values to display correctly.
 		if (ComponentbuilderHelper::checkArray($items))
 		{
-			// get user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			foreach ($items as $nr => &$item)
 			{
+				// Remove items the user can't access.
 				$access = ($user->authorise('field.access', 'com_componentbuilder.field.' . (int) $item->id) && $user->authorise('field.access', 'com_componentbuilder'));
 				if (!$access)
 				{
@@ -150,7 +139,7 @@ class ComponentbuilderModelFields extends JModelList
 				}
 
 			}
-		} 
+		}
 
 		// set selection value to a translatable value
 		if (ComponentbuilderHelper::checkArray($items))
@@ -167,28 +156,33 @@ class ComponentbuilderModelFields extends JModelList
 				$item->store = $this->selectionTranslation($item->store, 'store');
 			}
 		}
- 
+
         
 		// return items
 		return $items;
 	}
 
 	/**
-	* Method to convert selection values to translatable string.
-	*
-	* @return translatable string
-	*/
+	 * Method to convert selection values to translatable string.
+	 *
+	 * @return translatable string
+	 */
 	public function selectionTranslation($value,$name)
 	{
 		// Array of datatype language strings
 		if ($name === 'datatype')
 		{
 			$datatypeArray = array(
+				0 => 'COM_COMPONENTBUILDER_FIELD_SELECT_AN_OPTION',
 				'CHAR' => 'COM_COMPONENTBUILDER_FIELD_CHAR',
 				'VARCHAR' => 'COM_COMPONENTBUILDER_FIELD_VARCHAR',
 				'TEXT' => 'COM_COMPONENTBUILDER_FIELD_TEXT',
 				'MEDIUMTEXT' => 'COM_COMPONENTBUILDER_FIELD_MEDIUMTEXT',
 				'LONGTEXT' => 'COM_COMPONENTBUILDER_FIELD_LONGTEXT',
+				'BLOB' => 'COM_COMPONENTBUILDER_FIELD_BLOB',
+				'TINYBLOB' => 'COM_COMPONENTBUILDER_FIELD_TINYBLOB',
+				'MEDIUMBLOB' => 'COM_COMPONENTBUILDER_FIELD_MEDIUMBLOB',
+				'LONGBLOB' => 'COM_COMPONENTBUILDER_FIELD_LONGBLOB',
 				'DATETIME' => 'COM_COMPONENTBUILDER_FIELD_DATETIME',
 				'DATE' => 'COM_COMPONENTBUILDER_FIELD_DATE',
 				'TIME' => 'COM_COMPONENTBUILDER_FIELD_TIME',
@@ -239,8 +233,10 @@ class ComponentbuilderModelFields extends JModelList
 				0 => 'COM_COMPONENTBUILDER_FIELD_DEFAULT',
 				1 => 'COM_COMPONENTBUILDER_FIELD_JSON',
 				2 => 'COM_COMPONENTBUILDER_FIELD_BASESIXTY_FOUR',
-				3 => 'COM_COMPONENTBUILDER_FIELD_BASIC_ENCRYPTION_LOCALKEY',
-				4 => 'COM_COMPONENTBUILDER_FIELD_ADVANCE_ENCRYPTION_WHMCSKEY'
+				3 => 'COM_COMPONENTBUILDER_FIELD_BASIC_ENCRYPTION_LOCALDBKEY',
+				5 => 'COM_COMPONENTBUILDER_FIELD_MEDIUM_ENCRYPTION_LOCALFILEKEY',
+				4 => 'COM_COMPONENTBUILDER_FIELD_WHMCSKEY_ENCRYPTION',
+				6 => 'COM_COMPONENTBUILDER_FIELD_EXPERT_MODE_CUSTOM'
 			);
 			// Now check if value is found in this array
 			if (isset($storeArray[$value]) && ComponentbuilderHelper::checkString($storeArray[$value]))
@@ -312,7 +308,7 @@ class ComponentbuilderModelFields extends JModelList
 			else
 			{
 				$search = $db->quote('%' . $db->escape($search) . '%');
-				$query->where('(a.name LIKE '.$search.' OR a.fieldtype LIKE '.$search.' OR g.name LIKE '.$search.' OR a.datatype LIKE '.$search.' OR a.indexes LIKE '.$search.' OR a.null_switch LIKE '.$search.' OR a.xml LIKE '.$search.' OR a.catid LIKE '.$search.' OR a.store LIKE '.$search.')');
+				$query->where('(a.name LIKE '.$search.' OR a.fieldtype LIKE '.$search.' OR g.name LIKE '.$search.' OR a.datatype LIKE '.$search.' OR a.indexes LIKE '.$search.' OR a.null_switch LIKE '.$search.' OR a.store LIKE '.$search.' OR a.catid LIKE '.$search.' OR a.xml LIKE '.$search.')');
 			}
 		}
 
@@ -358,7 +354,7 @@ class ComponentbuilderModelFields extends JModelList
 		}
 		elseif (is_array($categoryId))
 		{
-			JArrayHelper::toInteger($categoryId);
+			ArrayHelper::toInteger($categoryId);
 			$categoryId = implode(',', $categoryId);
 			$query->where('a.category IN (' . $categoryId . ')');
 		}
@@ -366,7 +362,7 @@ class ComponentbuilderModelFields extends JModelList
 
 		// Add the list ordering clause.
 		$orderCol = $this->state->get('list.ordering', 'a.id');
-		$orderDirn = $this->state->get('list.direction', 'asc');	
+		$orderDirn = $this->state->get('list.direction', 'desc');
 		if ($orderCol != '')
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
@@ -376,19 +372,25 @@ class ComponentbuilderModelFields extends JModelList
 	}
 
 	/**
-	* Method to get list export data.
-	*
-	* @return mixed  An array of data items on success, false on failure.
-	*/
-	public function getExportData($pks)
+	 * Method to get list export data.
+	 *
+	 * @param   array  $pks  The ids of the items to get
+	 * @param   JUser  $user  The user making the request
+	 *
+	 * @return mixed  An array of data items on success, false on failure.
+	 */
+	public function getExportData($pks, $user = null)
 	{
 		// setup the query
-		if (ComponentbuilderHelper::checkArray($pks))
+		if (($pks_size = ComponentbuilderHelper::checkArray($pks)) !== false || 'bulk' === $pks)
 		{
-			// Set a value to know this is exporting method.
+			// Set a value to know this is export method. (USE IN CUSTOM CODE TO ALTER OUTCOME)
 			$_export = true;
-			// Get the user object.
-			$user = JFactory::getUser();
+			// Get the user object if not set.
+			if (!isset($user) || !ComponentbuilderHelper::checkObject($user))
+			{
+				$user = JFactory::getUser();
+			}
 			// Create a new query object.
 			$db = JFactory::getDBO();
 			$query = $db->getQuery(true);
@@ -398,7 +400,24 @@ class ComponentbuilderModelFields extends JModelList
 
 			// From the componentbuilder_field table
 			$query->from($db->quoteName('#__componentbuilder_field', 'a'));
-			$query->where('a.id IN (' . implode(',',$pks) . ')');
+			// The bulk export path
+			if ('bulk' === $pks)
+			{
+				$query->where('a.id > 0');
+			}
+			// A large array of ID's will not work out well
+			elseif ($pks_size > 500)
+			{
+				// Use lowest ID
+				$query->where('a.id >= ' . (int) min($pks));
+				// Use highest ID
+				$query->where('a.id <= ' . (int) max($pks));
+			}
+			// The normal default path
+			else
+			{
+				$query->where('a.id IN (' . implode(',',$pks) . ')');
+			}
 			// Implement View Level Access
 			if (!$user->authorise('core.options', 'com_componentbuilder'))
 			{
@@ -407,7 +426,7 @@ class ComponentbuilderModelFields extends JModelList
 			}
 
 			// Order the results by ordering
-			$query->order('a.ordering  ASC');
+			$query->order('a.id desc');
 
 			// Load the items
 			$db->setQuery($query);
@@ -416,13 +435,12 @@ class ComponentbuilderModelFields extends JModelList
 			{
 				$items = $db->loadObjectList();
 
-				// set values to display correctly.
+				// Set values to display correctly.
 				if (ComponentbuilderHelper::checkArray($items))
 				{
-					// get user object.
-					$user = JFactory::getUser();
 					foreach ($items as $nr => &$item)
 					{
+						// Remove items the user can't access.
 						$access = ($user->authorise('field.access', 'com_componentbuilder.field.' . (int) $item->id) && $user->authorise('field.access', 'com_componentbuilder'));
 						if (!$access)
 						{
@@ -430,14 +448,22 @@ class ComponentbuilderModelFields extends JModelList
 							continue;
 						}
 
+						// decode on_get_model_field
+						$item->on_get_model_field = base64_decode($item->on_get_model_field);
+						// decode on_save_model_field
+						$item->on_save_model_field = base64_decode($item->on_save_model_field);
+						// decode initiator_on_get_model
+						$item->initiator_on_get_model = base64_decode($item->initiator_on_get_model);
 						// decode css_view
 						$item->css_view = base64_decode($item->css_view);
-						// decode css_views
-						$item->css_views = base64_decode($item->css_views);
 						// decode javascript_view_footer
 						$item->javascript_view_footer = base64_decode($item->javascript_view_footer);
+						// decode css_views
+						$item->css_views = base64_decode($item->css_views);
 						// decode javascript_views_footer
 						$item->javascript_views_footer = base64_decode($item->javascript_views_footer);
+						// decode initiator_on_save_model
+						$item->initiator_on_save_model = base64_decode($item->initiator_on_save_model);
 						// unset the values we don't want exported.
 						unset($item->asset_id);
 						unset($item->checked_out);
@@ -481,7 +507,7 @@ class ComponentbuilderModelFields extends JModelList
 			return $headers;
 		}
 		return false;
-	} 
+	}
 	
 	/**
 	 * Method to get a store id based on model configuration state.
@@ -503,25 +529,25 @@ class ComponentbuilderModelFields extends JModelList
 		$id .= ':' . $this->getState('filter.datatype');
 		$id .= ':' . $this->getState('filter.indexes');
 		$id .= ':' . $this->getState('filter.null_switch');
+		$id .= ':' . $this->getState('filter.store');
 		$id .= ':' . $this->getState('filter.category');
 		$id .= ':' . $this->getState('filter.category_id');
 		$id .= ':' . $this->getState('filter.catid');
-		$id .= ':' . $this->getState('filter.store');
 
 		return parent::getStoreId($id);
 	}
 
 	/**
-	* Build an SQL query to checkin all items left checked out longer then a set time.
-	*
-	* @return  a bool
-	*
-	*/
+	 * Build an SQL query to checkin all items left checked out longer then a set time.
+	 *
+	 * @return  a bool
+	 *
+	 */
 	protected function checkInNow()
 	{
 		// Get set check in time
 		$time = JComponentHelper::getParams('com_componentbuilder')->get('check_in');
-		
+
 		if ($time)
 		{
 

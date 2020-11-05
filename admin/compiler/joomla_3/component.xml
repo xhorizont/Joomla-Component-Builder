@@ -7,9 +7,9 @@
 	<authorUrl>###AUTHORWEBSITE###</authorUrl>
 	<copyright>###COPYRIGHT###</copyright>
 	<license>###LICENSE###</license>
-	<version>###VERSION###</version>
+	<version>###ACTUALVERSION###</version>
 	<description><![CDATA[
-		<h1>###Component_name### (v.###VERSION###)</h1>
+		<h1>###Component_name### (v.###ACTUALVERSION###)</h1>
 		<div style="clear: both;"></div>
 		<p>###DESCRIPTION###</p>
 		<p>Created by <a href="###AUTHORWEBSITE###" target="_blank">###AUTHOR###</a><br /><small>Development started ###CREATIONDATE###</small></p>
@@ -33,7 +33,7 @@
 	<scriptfile>script.php</scriptfile>
 
 	<media destination="com_###component###" folder="media">
-		<filename>index.html</filename>
+		<filename>index.html</filename>###EXSTRA_MEDIA_FILES###
 		<folder>js</folder>
 		<folder>css</folder>
 		<folder>images</folder>###EXSTRA_MEDIA_FOLDERS###
@@ -50,7 +50,7 @@
 		<filename>controller.php</filename>
 		<filename>index.html</filename>
 		<filename>router.php</filename>
-		<filename>###component###.php</filename>
+		<filename>###component###.php</filename>###EXSTRA_SITE_FILES###
 		<folder>assets</folder>
 		<folder>helpers</folder>
 		<folder>controllers</folder>
@@ -60,8 +60,7 @@
 	</files>
 
 	<languages folder="site">
-		<language tag="en-GB">language/en-GB/en-GB.com_###component###.ini</language>
-		<language tag="en-GB">language/en-GB/en-GB.com_###component###.sys.ini</language>
+		###SITE_LANGUAGES###
 	</languages>
 
 	<administration>
@@ -72,7 +71,7 @@
 		<files folder="admin">
 			<filename>access.xml</filename>
 			<filename>config.xml</filename>
-			<filename>controller.php</filename>###ENCRYPT_FILE###
+			<filename>controller.php</filename>###WHMCS_ENCRYPT_FILE###
 			<filename>index.html</filename>
 			<filename>###component###.php</filename>###EXSTRA_ADMIN_FILES###
 			<folder>assets</folder>
@@ -86,8 +85,7 @@
 		</files>
 
 		<languages folder="admin">
-			<language tag="en-GB">language/en-GB/en-GB.com_###component###.ini</language>
-			<language tag="en-GB">language/en-GB/en-GB.com_###component###.sys.ini</language>
+			###ADMIN_LANGUAGES###
 		</languages>
 
 	</administration>###UPDATESERVER###

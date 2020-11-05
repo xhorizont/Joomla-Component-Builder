@@ -19,7 +19,6 @@
 			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_CREATED_DATE_LABEL"
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_CREATED_DATE_DESC"
 			size="22"
-
 			format="%Y-%m-%d %H:%M:%S"
 			filter="user_utc"
 		/>
@@ -28,13 +27,11 @@
 			name="created_by"
 			type="user"
 			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_CREATED_BY_LABEL"
-
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_CREATED_BY_DESC"
 		/>
 		<!-- Published Field. Type: List (joomla) -->
 		<field name="published" type="list" label="JSTATUS"
 			description="JFIELD_PUBLISHED_DESC" class="chzn-color-state"
-
 			filter="intval" size="1" default="1" >
 			<option value="1">
 				JPUBLISHED</option>
@@ -66,7 +63,6 @@
 			description=""
 			default="0"
 			size="6"
-
 			required="false"
 		/>
 		<!-- Version Field. Type: Text (joomla) -->
@@ -94,7 +90,7 @@
 			disabled="false"
 			required="true"
 			filter="STRING"
-			message="Error! Please add title here."
+			message="COM_COMPONENTBUILDER_HELP_DOCUMENT_TITLE_MESSAGE"
 			hint="COM_COMPONENTBUILDER_HELP_DOCUMENT_TITLE_HINT"
 		/>
 		<!-- Type Field. Type: List. (joomla) -->
@@ -105,7 +101,8 @@
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_TYPE_DESCRIPTION"
 			class="list_class"
 			multiple="false"
-			required="true">
+			required="true"
+			default="">
 			<!-- Option Set. -->
 			<option value="">
 				COM_COMPONENTBUILDER_HELP_DOCUMENT_SELECT_AN_OPTION</option>
@@ -132,6 +129,7 @@
 			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_LOCATION_LABEL"
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_LOCATION_DESCRIPTION"
 			class="btn-group"
+			default=""
 			required="true">
 			<!-- Option Set. -->
 			<option value="1">
@@ -147,6 +145,7 @@
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_ADMIN_VIEW_DESCRIPTION"
 			class="list_class"
 			multiple="false"
+			default=""
 			required="true"
 			button="false"
 		/>
@@ -158,23 +157,16 @@
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_SITE_VIEW_DESCRIPTION"
 			class="list_class"
 			multiple="false"
+			default=""
 			required="true"
 			button="false"
 		/>
-		<!-- Target Field. Type: Radio. (joomla) -->
+		<!-- Not_required Field. Type: Hidden. (joomla) -->
 		<field
-			type="radio"
-			name="target"
-			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_TARGET_LABEL"
-			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_TARGET_DESCRIPTION"
-			class="btn-group"
-			required="true">
-			<!-- Option Set. -->
-			<option value="1">
-				COM_COMPONENTBUILDER_HELP_DOCUMENT_SOME</option>
-			<option value="2">
-				COM_COMPONENTBUILDER_HELP_DOCUMENT_ALL</option>
-		</field>
+			type="hidden"
+			name="not_required"
+			default="一_一"
+		/>
 		<!-- Content Field. Type: Editor. (joomla) -->
 		<field
 			type="editor"
@@ -184,16 +176,6 @@
 			height="300 px"
 			buttons="false"
 			filter="safehtml"
-			required="true"
-		/>
-		<!-- Alias Field. Type: Text. (joomla) -->
-		<field
-			type="text"
-			name="alias"
-			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_ALIAS_LABEL"
-			description="JFIELD_ALIAS_DESC"
-			filter="STRING"
-			hint="COM_COMPONENTBUILDER_HELP_DOCUMENT_ALIAS_HINT"
 		/>
 		<!-- Article Field. Type: Articles. (custom) -->
 		<field
@@ -212,19 +194,39 @@
 			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_URL_LABEL"
 			size="60"
 			maxlength="150"
+			default=""
 			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_URL_DESCRIPTION"
 			class="text_area"
 			required="true"
 			filter="url"
 			validated="url"
-			message="Error! Please add url here."
+			scheme="http,https"
+			message="COM_COMPONENTBUILDER_HELP_DOCUMENT_URL_MESSAGE"
 			hint="COM_COMPONENTBUILDER_HELP_DOCUMENT_URL_HINT"
 		/>
-		<!-- Not_required Field. Type: Hidden. (joomla) -->
+		<!-- Target Field. Type: Radio. (joomla) -->
 		<field
-			type="hidden"
-			name="not_required"
-			default="[]"
+			type="radio"
+			name="target"
+			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_TARGET_LABEL"
+			description="COM_COMPONENTBUILDER_HELP_DOCUMENT_TARGET_DESCRIPTION"
+			class="btn-group"
+			default=""
+			required="true">
+			<!-- Option Set. -->
+			<option value="1">
+				COM_COMPONENTBUILDER_HELP_DOCUMENT_SOME</option>
+			<option value="2">
+				COM_COMPONENTBUILDER_HELP_DOCUMENT_ALL</option>
+		</field>
+		<!-- Alias Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="alias"
+			label="COM_COMPONENTBUILDER_HELP_DOCUMENT_ALIAS_LABEL"
+			description="JFIELD_ALIAS_DESC"
+			filter="STRING"
+			hint="COM_COMPONENTBUILDER_HELP_DOCUMENT_ALIAS_HINT"
 		/>
 	</fieldset>
 	

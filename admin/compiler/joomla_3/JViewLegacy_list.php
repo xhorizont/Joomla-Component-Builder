@@ -1,25 +1,13 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@package		Component Builder
-	@subpackage		componentbuilder.php
-	@author			Llewellyn van der Merwe <https://www.vdm.io/joomla-component-builder>
-	@my wife		Roline van der Merwe <http://www.vdm.io/>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2018 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
@@ -28,9 +16,6 @@ defined('_JEXEC') or die('Restricted access');
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');###LICENSE_LOCKED_DEFINED###
-
-// import Joomla view library
-jimport('joomla.application.component.view');
 
 /**
  * ###Component### View class for the ###Views###
@@ -49,34 +34,33 @@ class ###Component###View###Views### extends JViewLegacy
 			###Component###Helper::addSubmenu('###views###');
 		}
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-                {
-			JError::raiseError(500, implode('<br />', $errors));
-			return false;
-		}
-
 		// Assign data to the view
-		$this->items 		= $this->get('Items');
-		$this->pagination 	= $this->get('Pagination');
-		$this->state		= $this->get('State');
-		$this->user 		= JFactory::getUser();
-		$this->listOrder	= $this->escape($this->state->get('list.ordering'));
-		$this->listDirn		= $this->escape($this->state->get('list.direction'));
-		$this->saveOrder	= $this->listOrder == 'ordering';
-                // get global action permissions
-		$this->canDo		= ###Component###Helper::getActions('###view###');###JVIEWLISTCANDO###
+		$this->items = $this->get('Items');
+		$this->pagination = $this->get('Pagination');
+		$this->state = $this->get('State');
+		$this->user = JFactory::getUser();###ADMIN_DIPLAY_METHOD###
+		$this->saveOrder = $this->listOrder == 'ordering';
+		// set the return here value
+		$this->return_here = urlencode(base64_encode((string) JUri::getInstance()));
+		// get global action permissions
+		$this->canDo = ###Component###Helper::getActions('###view###');###JVIEWLISTCANDO###
 
 		// We don't need toolbar in the modal window.
 		if ($this->getLayout() !== 'modal')
 		{
 			$this->addToolbar();
 			$this->sidebar = JHtmlSidebar::render();
-                        // load the batch html
-                        if ($this->canCreate && $this->canEdit && $this->canState)
-                        {
-                                $this->batchDisplay = JHtmlBatch_::render();
-                        }
+			// load the batch html
+			if ($this->canCreate && $this->canEdit && $this->canState)
+			{
+				$this->batchDisplay = JHtmlBatch_::render();
+			}
+		}
+		
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			throw new Exception(implode("\n", $errors), 500);
 		}
 
 		// Display the template
@@ -93,86 +77,86 @@ class ###Component###View###Views### extends JViewLegacy
 	{
 		JToolBarHelper::title(JText::_('COM_###COMPONENT###_###VIEWS###'), '###ICOMOON###');
 		JHtmlSidebar::setAction('index.php?option=com_###component###&view=###views###');
-                JFormHelper::addFieldPath(JPATH_COMPONENT . '/models/fields');
+		JFormHelper::addFieldPath(JPATH_COMPONENT . '/models/fields');
 
 		if ($this->canCreate)
-                {
+		{
 			JToolBarHelper::addNew('###view###.add');
 		}
 
-                // Only load if there are items
-                if (###Component###Helper::checkArray($this->items))
+		// Only load if there are items
+		if (###Component###Helper::checkArray($this->items))
 		{
-                        if ($this->canEdit)
-                        {
-                            JToolBarHelper::editList('###view###.edit');
-                        }
+			if ($this->canEdit)
+			{
+				JToolBarHelper::editList('###view###.edit');
+			}
 
-                        if ($this->canState)
-                        {
-                            JToolBarHelper::publishList('###views###.publish');
-                            JToolBarHelper::unpublishList('###views###.unpublish');
-                            JToolBarHelper::archiveList('###views###.archive');
+			if ($this->canState)
+			{
+				JToolBarHelper::publishList('###views###.publish');
+				JToolBarHelper::unpublishList('###views###.unpublish');
+				JToolBarHelper::archiveList('###views###.archive');
 
-                            if ($this->canDo->get('core.admin'))
-                            {
-                                JToolBarHelper::checkin('###views###.checkin');
-                            }
-                        }
+				if ($this->canDo->get('core.admin'))
+				{
+					JToolBarHelper::checkin('###views###.checkin');
+				}
+			}
 
-                        // Add a batch button
-                        if ($this->canBatch && $this->canCreate && $this->canEdit && $this->canState)
-                        {
-                                // Get the toolbar object instance
-                                $bar = JToolBar::getInstance('toolbar');
-                                // set the batch button name
-                                $title = JText::_('JTOOLBAR_BATCH');
-                                // Instantiate a new JLayoutFile instance and render the batch button
-                                $layout = new JLayoutFile('joomla.toolbar.batch');
-                                // add the button to the page
-                                $dhtml = $layout->render(array('title' => $title));
-                                $bar->appendButton('Custom', $dhtml, 'batch');
-                        }###CUSTOM_ADMIN_DYNAMIC_BUTTONS### ###ADMIN_CUSTOM_BUTTONS_LIST###
+			// Add a batch button
+			if ($this->canBatch && $this->canCreate && $this->canEdit && $this->canState)
+			{
+				// Get the toolbar object instance
+				$bar = JToolBar::getInstance('toolbar');
+				// set the batch button name
+				$title = JText::_('JTOOLBAR_BATCH');
+				// Instantiate a new JLayoutFile instance and render the batch button
+				$layout = new JLayoutFile('joomla.toolbar.batch');
+				// add the button to the page
+				$dhtml = $layout->render(array('title' => $title));
+				$bar->appendButton('Custom', $dhtml, 'batch');
+			}###CUSTOM_ADMIN_DYNAMIC_BUTTONS######ADMIN_CUSTOM_BUTTONS_LIST###
 
-                        if ($this->state->get('filter.published') == -2 && ($this->canState && $this->canDelete))
-                        {
-                            JToolbarHelper::deleteList('', '###views###.delete', 'JTOOLBAR_EMPTY_TRASH');
-                        }
-                        elseif ($this->canState && $this->canDelete)
-                        {
-                                JToolbarHelper::trash('###views###.trash');
-                        }###EXPORTBUTTON###
-                }###IMPORTBUTTON###
+			if ($this->state->get('filter.published') == -2 && ($this->canState && $this->canDelete))
+			{
+				JToolbarHelper::deleteList('', '###views###.delete', 'JTOOLBAR_EMPTY_TRASH');
+			}
+			elseif ($this->canState && $this->canDelete)
+			{
+				JToolbarHelper::trash('###views###.trash');
+			}###EXPORTBUTTON###
+		}###ADMIN_CUSTOM_FUNCTION_ONLY_BUTTONS_LIST######IMPORTBUTTON###
 
-                // set help url for this view if found
-                $help_url = ###Component###Helper::getHelpUrl('###views###');
-                if (###Component###Helper::checkString($help_url))
-                {
-                        JToolbarHelper::help('COM_###COMPONENT###_HELP_MANAGER', false, $help_url);
-                }
+		// set help url for this view if found
+		$help_url = ###Component###Helper::getHelpUrl('###views###');
+		if (###Component###Helper::checkString($help_url))
+		{
+				JToolbarHelper::help('COM_###COMPONENT###_HELP_MANAGER', false, $help_url);
+		}
 
-                // add the options comp button
-                if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
-                {
-                        JToolBarHelper::preferences('com_###component###');
-                }
+		// add the options comp button
+		if ($this->canDo->get('core.admin') || $this->canDo->get('core.options'))
+		{
+			JToolBarHelper::preferences('com_###component###');
+		}
 
-                if ($this->canState)
-                {
+		if ($this->canState)
+		{
 			JHtmlSidebar::addFilter(
 				JText::_('JOPTION_SELECT_PUBLISHED'),
 				'filter_published',
 				JHtml::_('select.options', JHtml::_('jgrid.publishedOptions'), 'value', 'text', $this->state->get('filter.published'), true)
 			);
-                        // only load if batch allowed
-                        if ($this->canBatch)
-                        {
-                            JHtmlBatch_::addListSelection(
-                                JText::_('COM_###COMPONENT###_KEEP_ORIGINAL_STATE'),
-                                'batch[published]',
-                                JHtml::_('select.options', JHtml::_('jgrid.publishedOptions', array('all' => false)), 'value', 'text', '', true)
-                            );
-                        }
+			// only load if batch allowed
+			if ($this->canBatch)
+			{
+				JHtmlBatch_::addListSelection(
+					JText::_('COM_###COMPONENT###_KEEP_ORIGINAL_STATE'),
+					'batch[published]',
+					JHtml::_('select.options', JHtml::_('jgrid.publishedOptions', array('all' => false)), 'value', 'text', '', true)
+				);
+			}
 		}
 
 		JHtmlSidebar::addFilter(
@@ -184,11 +168,11 @@ class ###Component###View###Views### extends JViewLegacy
 		if ($this->canBatch && $this->canCreate && $this->canEdit)
 		{
 			JHtmlBatch_::addListSelection(
-                                JText::_('COM_###COMPONENT###_KEEP_ORIGINAL_ACCESS'),
-                                'batch[access]',
-                                JHtml::_('select.options', JHtml::_('access.assetgroups'), 'value', 'text')
+				JText::_('COM_###COMPONENT###_KEEP_ORIGINAL_ACCESS'),
+				'batch[access]',
+				JHtml::_('select.options', JHtml::_('access.assetgroups'), 'value', 'text')
 			);
-                } ###CATEGORYFILTER### ###OTHERFILTERS###
+		}###CATEGORYFILTER######OTHERFILTERS###
 	}
 
 	/**
@@ -198,12 +182,15 @@ class ###Component###View###Views### extends JViewLegacy
 	 */
 	protected function setDocument()
 	{
-		$document = JFactory::getDocument();
-		$document->setTitle(JText::_('COM_###COMPONENT###_###VIEWS###'));
-		$document->addStyleSheet(JURI::root() . "administrator/components/com_###component###/assets/css/###views###.css");
+		if (!isset($this->document))
+		{
+			$this->document = JFactory::getDocument();
+		}
+		$this->document->setTitle(JText::_('COM_###COMPONENT###_###VIEWS###'));
+		$this->document->addStyleSheet(JURI::root() . "administrator/components/com_###component###/assets/css/###views###.css", (###Component###Helper::jVersion()->isCompatible('3.8.0')) ? array('version' => 'auto') : 'text/css');###ADMIN_ADD_JAVASCRIPT_FILE###
 	}
 
-        /**
+	/**
 	 * Escapes a value for output in a view script.
 	 *
 	 * @param   mixed  $var  The output to escape.
@@ -214,10 +201,10 @@ class ###Component###View###Views### extends JViewLegacy
 	{
 		if(strlen($var) > 50)
 		{
-                        // use the helper htmlEscape method instead and shorten the string
+			// use the helper htmlEscape method instead and shorten the string
 			return ###Component###Helper::htmlEscape($var, $this->_charset, true);
 		}
-                // use the helper htmlEscape method instead.
+		// use the helper htmlEscape method instead.
 		return ###Component###Helper::htmlEscape($var, $this->_charset);
 	}
 
@@ -229,5 +216,5 @@ class ###Component###View###Views### extends JViewLegacy
 	protected function getSortFields()
 	{
 		###SORTFIELDS###
-	} ###FILTERFUNCTIONS###
+	}###FILTERFUNCTIONS###
 }

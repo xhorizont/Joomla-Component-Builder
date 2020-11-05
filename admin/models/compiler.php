@@ -1,49 +1,34 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 46 of this MVC
-	@build			3rd March, 2017
-	@created		1st February, 2017
-	@package		Component Builder
-	@subpackage		compiler.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import the Joomla modellist library
-jimport('joomla.application.component.modellist');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Componentbuilder Model for Compiler
  */
 class ComponentbuilderModelCompiler extends JModelList
 {
-        /**
+	/**
 	 * Model user data.
 	 *
-	 * @var        strings
+	 * @var  strings
 	 */
-        protected $user;
-        protected $userId;
-        protected $guest;
-        protected $groups;
-        protected $levels;
+	protected $user;
+	protected $userId;
+	protected $guest;
+	protected $groups;
+	protected $levels;
 	protected $app;
 	protected $input;
 	protected $uikitComp;
@@ -55,16 +40,16 @@ class ComponentbuilderModelCompiler extends JModelList
 	 */
 	protected function getListQuery()
 	{
-                // Get the current user for authorisation checks
-		$this->user		= JFactory::getUser();
-		$this->userId		= $this->user->get('id');
-		$this->guest		= $this->user->get('guest');
-                $this->groups		= $this->user->get('groups');
-                $this->authorisedGroups	= $this->user->getAuthorisedGroups();
-		$this->levels		= $this->user->getAuthorisedViewLevels();
-		$this->app		= JFactory::getApplication();
-		$this->input		= $this->app->input;
-		$this->initSet		= true; 
+		// Get the current user for authorisation checks
+		$this->user = JFactory::getUser();
+		$this->userId = $this->user->get('id');
+		$this->guest = $this->user->get('guest');
+		$this->groups = $this->user->get('groups');
+		$this->authorisedGroups	= $this->user->getAuthorisedGroups();
+		$this->levels = $this->user->getAuthorisedViewLevels();
+		$this->app = JFactory::getApplication();
+		$this->input = $this->app->input;
+		$this->initSet = true; 
 		// Make sure all records load, since no pagination allowed.
 		$this->setState('list.limit', 0);
 		// Get a db connection.
@@ -78,6 +63,7 @@ class ComponentbuilderModelCompiler extends JModelList
 			array('a.id','a.system_name','a.name','a.name_code','a.component_version','a.debug_linenr','a.short_description','a.image','a.companyname','a.author','a.email','a.website','a.copyright','a.modified','a.created','a.version'),
 			array('id','system_name','name','name_code','component_version','debug_linenr','short_description','image','companyname','author','email','website','copyright','modified','created','version')));
 		$query->from($db->quoteName('#__componentbuilder_joomla_component', 'a'));
+		// Get where a.published is 1
 		$query->where('a.published = 1');
 		$query->order('a.modified DESC');
 		$query->order('a.created DESC');
@@ -93,47 +79,54 @@ class ComponentbuilderModelCompiler extends JModelList
 	 */
 	public function getItems()
 	{
-                $user = JFactory::getUser();
-                // check if this user has permission to access items
-                if (!$user->authorise('compiler.access', 'com_componentbuilder'))
-                {
+		$user = JFactory::getUser();
+		// check if this user has permission to access items
+		if (!$user->authorise('compiler.access', 'com_componentbuilder'))
+		{
 			$app = JFactory::getApplication();
 			$app->enqueueMessage(JText::_('Not authorised!'), 'error');
 			// redirect away if not a correct (TODO for now we go to default view)
 			$app->redirect('index.php?option=com_componentbuilder');
 			return false;
-                } 
+		}
 		// load parent items
 		$items = parent::getItems();
 
 		// Get the global params
 		$globalParams = JComponentHelper::getParams('com_componentbuilder', true);
 
-		// Convert the parameter fields into objects.
+		// Insure all item fields are adapted where needed.
 		if (ComponentbuilderHelper::checkArray($items))
 		{
+			// Load the JEvent Dispatcher
+			JPluginHelper::importPlugin('content');
+			$this->_dispatcher = JEventDispatcher::getInstance();
 			foreach ($items as $nr => &$item)
 			{
 				// Always create a slug for sef URL's
 				$item->slug = (isset($item->alias) && isset($item->id)) ? $item->id.':'.$item->alias : $item->id;
-				// Make sure the content prepare plugins fire on copyright.
-				$item->copyright = JHtml::_('content.prepare',$item->copyright);
+				// Check if item has params, or pass whole item.
+				$params = (isset($item->params) && ComponentbuilderHelper::checkJson($item->params)) ? json_decode($item->params) : $item;
+				// Make sure the content prepare plugins fire on copyright
+				$_copyright = new stdClass();
+				$_copyright->text =& $item->copyright; // value must be in text
+				// Since all values are now in text (Joomla Limitation), we also add the field name (copyright) to context
+				$this->_dispatcher->trigger("onContentPrepare", array('com_componentbuilder.compiler.copyright', &$_copyright, &$params, 0));
 				// Checking if copyright has uikit components that must be loaded.
 				$this->uikitComp = ComponentbuilderHelper::getUikitComp($item->copyright,$this->uikitComp);
 			}
-		} 
+		}
 
 		// return items
 		return $items;
 	}
 
-
 	/**
-	* Get the uikit needed components
-	*
-	* @return mixed  An array of objects on success.
-	*
-	*/
+	 * Get the uikit needed components
+	 *
+	 * @return mixed  An array of objects on success.
+	 *
+	 */
 	public function getUikitComp()
 	{
 		if (isset($this->uikitComp) && ComponentbuilderHelper::checkArray($this->uikitComp))
@@ -141,10 +134,10 @@ class ComponentbuilderModelCompiler extends JModelList
 			return $this->uikitComp;
 		}
 		return false;
-	}  
+	}
 
 	public $compiler;
-	
+
 	public function getComponents()
 	{
 		// Get a db connection.
@@ -162,23 +155,25 @@ class ComponentbuilderModelCompiler extends JModelList
 		// return the result
 		return $db->loadObjectList();
 	}
-	
-	public function builder($version, $id, $backup, $git, $addPlaceholders, $debugLinenr) 
-	{	
-		$set['joomlaVersion']		= $version;
-		$set['componentId']		= $id;
-		$set['addBackup']		= $backup;
-		$set['addGit']			= $git;
-		$set['addPlaceholders']	= $addPlaceholders;
-		$set['debugLinenr']		= $debugLinenr;
-		// start up Compiler
-		$this->compiler			= new Compiler($set);
-		if($this->compiler){
+
+	public function builder($version, $id, $backup, $repo, $addPlaceholders, $debugLinenr, $minify) 
+	{
+		$set['version'] = $version;
+		$set['component'] = $id;
+		$set['backup'] = $backup;
+		$set['repository'] = $repo;
+		$set['placeholders'] = $addPlaceholders;
+		$set['debuglinenr'] = $debugLinenr;
+		$set['minify'] = $minify;
+		// run compiler
+		$this->compiler = new Compiler($set);
+		if($this->compiler)
+		{
 			return true;
 		}
 		return false;
 	}
-	
+
 	public function emptyFolder($dir, $removeDir = false)
 	{
 		jimport('joomla.filesystem.folder');
@@ -217,9 +212,11 @@ class ComponentbuilderModelCompiler extends JModelList
 		}
 		return false;
 	}
-	
+
 	public function install($p_file)
 	{
+		$this->setState('action', 'install');
+
 		// Set FTP credentials, if given.
 		JClientHelper::setCredentialsFromRequest('ftp');
 		$app = JFactory::getApplication();
@@ -227,7 +224,7 @@ class ComponentbuilderModelCompiler extends JModelList
 		// Load installer plugins for assistance if required:
 		JPluginHelper::importPlugin('installer');
 		$dispatcher = JEventDispatcher::getInstance();
-		
+
 		$package = null;
 
 		// This event allows an input pre-treatment, a custom pre-packing or custom installation.
@@ -238,18 +235,21 @@ class ComponentbuilderModelCompiler extends JModelList
 		{
 			return true;
 		}
-		elseif (in_array(false, $results, true))
+
+		if (in_array(false, $results, true))
 		{
 			return false;
 		}
-		
+
 		$config   = JFactory::getConfig();
 		$tmp_dest = $config->get('tmp_path');
 
 		// Unpack the downloaded package file.
 		$package = JInstallerHelper::unpack($tmp_dest . '/' . $p_file, true);
-		// insure the install type is folder
+
+		// insure the install type is folder (JCB zip file is in the folder)
 		$installType = 'folder';
+
 		// This event allows a custom installation of the package or a customization of the package:
 		$results = $dispatcher->trigger('onInstallerBeforeInstaller', array($this, &$package));
 
@@ -261,7 +261,7 @@ class ComponentbuilderModelCompiler extends JModelList
 		{
 			return false;
 		}
-		
+
 		// Was the package unpacked?
 		if (!$package || !$package['type'])
 		{
@@ -282,7 +282,7 @@ class ComponentbuilderModelCompiler extends JModelList
 		}
 		else
 		{
-			// Package installed sucessfully.
+			// Package installed successfully.
 			$msg = JText::sprintf('COM_INSTALLER_INSTALL_SUCCESS', JText::_('COM_INSTALLER_TYPE_TYPE_' . strtoupper($package['type'])));
 			$result = true;
 			$msgType = 'message';
@@ -292,7 +292,7 @@ class ComponentbuilderModelCompiler extends JModelList
 		$dispatcher->trigger('onInstallerAfterInstaller', array($this, &$package, $installer, &$result, &$msg));
 
 		// Set some model state values.
-		$app	= JFactory::getApplication();
+		$app = JFactory::getApplication();
 		$app->enqueueMessage($msg, $msgType);
 		$this->setState('name', $installer->get('name'));
 		$this->setState('result', $result);
@@ -308,6 +308,16 @@ class ComponentbuilderModelCompiler extends JModelList
 		}
 
 		JInstallerHelper::cleanupInstall($package['packagefile'], $package['extractdir']);
+
+		// Clear the cached extension data and menu cache
+		$this->cleanCache('_system', 0);
+		$this->cleanCache('_system', 1);
+		$this->cleanCache('com_modules', 0);
+		$this->cleanCache('com_modules', 1);
+		$this->cleanCache('com_plugins', 0);
+		$this->cleanCache('com_plugins', 1);
+		$this->cleanCache('mod_menu', 0);
+		$this->cleanCache('mod_menu', 1);
 
 		return $result;
 	}

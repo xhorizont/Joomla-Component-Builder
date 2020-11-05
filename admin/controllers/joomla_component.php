@@ -1,33 +1,18 @@
 <?php
-/*--------------------------------------------------------------------------------------------------------|  www.vdm.io  |------/
-    __      __       _     _____                 _                                  _     __  __      _   _               _
-    \ \    / /      | |   |  __ \               | |                                | |   |  \/  |    | | | |             | |
-     \ \  / /_ _ ___| |_  | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_  | \  / | ___| |_| |__   ___   __| |
-      \ \/ / _` / __| __| | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __| | |\/| |/ _ \ __| '_ \ / _ \ / _` |
-       \  / (_| \__ \ |_  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_  | |  | |  __/ |_| | | | (_) | (_| |
-        \/ \__,_|___/\__| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__| |_|  |_|\___|\__|_| |_|\___/ \__,_|
-                                                        | |                                                                 
-                                                        |_| 				
-/-------------------------------------------------------------------------------------------------------------------------------/
-
-	@version		@update number 97 of this MVC
-	@build			3rd March, 2017
-	@created		6th May, 2015
-	@package		Component Builder
-	@subpackage		joomla_component.php
-	@author			Llewellyn van der Merwe <http://vdm.bz/component-builder>	
-	@copyright		Copyright (C) 2015. All Rights Reserved
-	@license		GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html 
-	
-	Builds Complex Joomla Components 
-                                                             
-/-----------------------------------------------------------------------------------------------------------------------------*/
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    30th April, 2015
+ * @author     Llewellyn van der Merwe <http://www.joomlacomponentbuilder.com>
+ * @github     Joomla Component Builder <https://github.com/vdm-io/Joomla-Component-Builder>
+ * @copyright  Copyright (C) 2015 - 2020 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 // No direct access to this file
 defined('_JEXEC') or die('Restricted access');
 
-// import Joomla controllerform library
-jimport('joomla.application.component.controllerform');
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Joomla_component Controller
@@ -43,10 +28,42 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 */
 	protected $task;
 
+	/**
+	 * Class constructor.
+	 *
+	 * @param   array  $config  A named array of configuration variables.
+	 *
+	 * @since   1.6
+	 */
 	public function __construct($config = array())
 	{
 		$this->view_list = 'Joomla_components'; // safeguard for setting the return view listing to the main view.
 		parent::__construct($config);
+	}
+
+	public function refresh()
+	{
+		// Check for request forgeries
+		JSession::checkToken() or die(JText::_('JINVALID_TOKEN'));
+		// check if import is allowed for this user.
+		$user = JFactory::getUser();
+		if ($user->authorise('joomla_component.import_jcb_packages', 'com_componentbuilder') && $user->authorise('core.import', 'com_componentbuilder'))
+		{
+			$session = JFactory::getSession();
+			$session->set('backto_VDM_IMPORT', 'joomla_components');
+			$session->set('dataType_VDM_IMPORTINTO', 'smart_package');
+			// clear the session
+			ComponentbuilderHelper::set('vdmGithubPackages', null);
+			ComponentbuilderHelper::set('communityGithubPackages', null);
+			// Redirect to import view.
+			$message = JText::_('COM_COMPONENTBUILDER_YOU_CAN_NOW_SELECT_THE_COMPONENT_BZIPB_PACKAGE_YOU_WOULD_LIKE_TO_IMPORTBR_SMALLPLEASE_NOTE_THAT_SMART_COMPONENT_IMPORT_ONLY_WORKS_WITH_THE_FOLLOWING_FORMAT_BZIPBSMALL');
+			$this->setRedirect(JRoute::_('index.php?option=com_componentbuilder&view=import_joomla_components&target=smartPackage', false), $message);
+			return;
+		}
+		// Redirect to the list screen with error.
+		$message = JText::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_IMPORT_A_COMPONENT_PLEASE_CONTACT_YOUR_SYSTEM_ADMINISTRATOR_FOR_MORE_HELP');
+		$this->setRedirect(JRoute::_('index.php?option=com_componentbuilder&view=joomla_components', false), $message, 'error');
+		return;
 	}
 
         /**
@@ -60,14 +77,17 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 */
 	protected function allowAdd($data = array())
 	{
+		// Get user object.
+		$user = JFactory::getUser();
 		// Access check.
-		$access = JFactory::getUser()->authorise('joomla_component.access', 'com_componentbuilder');
+		$access = $user->authorise('joomla_component.access', 'com_componentbuilder');
 		if (!$access)
 		{
 			return false;
 		}
+
 		// In the absense of better information, revert to the component permissions.
-		return parent::allowAdd($data);
+		return $user->authorise('joomla_component.create', $this->option);
 	}
 
 	/**
@@ -83,18 +103,25 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	protected function allowEdit($data = array(), $key = 'id')
 	{
 		// get user object.
-		$user		= JFactory::getUser();
+		$user = JFactory::getUser();
 		// get record id.
-		$recordId	= (int) isset($data[$key]) ? $data[$key] : 0;
+		$recordId = (int) isset($data[$key]) ? $data[$key] : 0;
 
+
+		// Access check.
+		$access = ($user->authorise('joomla_component.access', 'com_componentbuilder.joomla_component.' . (int) $recordId) &&  $user->authorise('joomla_component.access', 'com_componentbuilder'));
+		if (!$access)
+		{
+			return false;
+		}
 
 		if ($recordId)
 		{
 			// The record has been set. Check the record permissions.
-			$permission = $user->authorise('core.edit', 'com_componentbuilder.joomla_component.' . (int) $recordId);
+			$permission = $user->authorise('joomla_component.edit', 'com_componentbuilder.joomla_component.' . (int) $recordId);
 			if (!$permission)
 			{
-				if ($user->authorise('core.edit.own', 'com_componentbuilder.joomla_component.' . $recordId))
+				if ($user->authorise('joomla_component.edit.own', 'com_componentbuilder.joomla_component.' . $recordId))
 				{
 					// Now test the owner is the user.
 					$ownerId = (int) isset($data['created_by']) ? $data['created_by'] : 0;
@@ -113,7 +140,7 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 					// If the owner matches 'me' then allow.
 					if ($ownerId == $user->id)
 					{
-						if ($user->authorise('core.edit.own', 'com_componentbuilder'))
+						if ($user->authorise('joomla_component.edit.own', 'com_componentbuilder'))
 						{
 							return true;
 						}
@@ -123,7 +150,7 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 			}
 		}
 		// Since there is no permission, revert to the component permissions.
-		return parent::allowEdit($data, $key);
+		return $user->authorise('joomla_component.edit', $this->option);
 	}
 
 	/**
@@ -134,42 +161,25 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 *
 	 * @return  string  The arguments to append to the redirect URL.
 	 *
-	 * @since   12.2
+	 * @since   1.6
 	 */
 	protected function getRedirectToItemAppend($recordId = null, $urlVar = 'id')
 	{
-		$tmpl   = $this->input->get('tmpl');
-		$layout = $this->input->get('layout', 'edit', 'string');
+		// get the referral options (old method use return instead see parent)
+		$ref = $this->input->get('ref', 0, 'string');
+		$refid = $this->input->get('refid', 0, 'int');
 
-		$ref 	= $this->input->get('ref', 0, 'string');
-		$refid 	= $this->input->get('refid', 0, 'int');
+		// get redirect info.
+		$append = parent::getRedirectToItemAppend($recordId, $urlVar);
 
-		// Setup redirect info.
-
-		$append = '';
-
-		if ($refid)
+		// set the referral options
+		if ($refid && $ref)
                 {
-			$append .= '&ref='.(string)$ref.'&refid='.(int)$refid;
+			$append = '&ref=' . (string)$ref . '&refid='. (int)$refid . $append;
 		}
-                elseif ($ref)
-                {
-			$append .= '&ref='.(string)$ref;
-                }
-
-		if ($tmpl)
+		elseif ($ref)
 		{
-			$append .= '&tmpl=' . $tmpl;
-		}
-
-		if ($layout)
-		{
-			$append .= '&layout=' . $layout;
-		}
-
-		if ($recordId)
-		{
-			$append .= '&' . $urlVar . '=' . $recordId;
+			$append = '&ref='. (string)$ref . $append;
 		}
 
 		return $append;
@@ -208,43 +218,45 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 */
 	public function cancel($key = null)
 	{
-		// get the referal details
-		$this->ref 		= $this->input->get('ref', 0, 'word');
-		$this->refid 	= $this->input->get('refid', 0, 'int');
+		// get the referral options
+		$this->ref = $this->input->get('ref', 0, 'word');
+		$this->refid = $this->input->get('refid', 0, 'int');
+
+		// Check if there is a return value
+		$return = $this->input->get('return', null, 'base64');
 
 		$cancel = parent::cancel($key);
 
-		if ($cancel)
+		if (!is_null($return) && JUri::isInternal(base64_decode($return)))
 		{
-			if ($this->refid)
-			{
-				$redirect = '&view='.(string)$this->ref.'&layout=edit&id='.(int)$this->refid;
+			$redirect = base64_decode($return);
 
-				// Redirect to the item screen.
-				$this->setRedirect(
-					JRoute::_(
-						'index.php?option=' . $this->option . $redirect, false
-					)
-				);
-			}
-			elseif ($this->ref)
-			{
-				$redirect = '&view='.(string)$this->ref;
-
-				// Redirect to the list screen.
-				$this->setRedirect(
-					JRoute::_(
-						'index.php?option=' . $this->option . $redirect, false
-					)
-				);
-			}
-		}
-		else
-		{
-			// Redirect to the items screen.
+			// Redirect to the return value.
 			$this->setRedirect(
 				JRoute::_(
-					'index.php?option=' . $this->option . '&view=' . $this->view_list, false
+					$redirect, false
+				)
+			);
+		}
+		elseif ($this->refid && $this->ref)
+		{
+			$redirect = '&view=' . (string)$this->ref . '&layout=edit&id=' . (int)$this->refid;
+
+			// Redirect to the item screen.
+			$this->setRedirect(
+				JRoute::_(
+					'index.php?option=' . $this->option . $redirect, false
+				)
+			);
+		}
+		elseif ($this->ref)
+		{
+			$redirect = '&view='.(string)$this->ref;
+
+			// Redirect to the list screen.
+			$this->setRedirect(
+				JRoute::_(
+					'index.php?option=' . $this->option . $redirect, false
 				)
 			);
 		}
@@ -263,21 +275,38 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 */
 	public function save($key = null, $urlVar = null)
 	{
-		// get the referal details
-		$this->ref 		= $this->input->get('ref', 0, 'word');
-		$this->refid 	= $this->input->get('refid', 0, 'int');
+		// get the referral options
+		$this->ref = $this->input->get('ref', 0, 'word');
+		$this->refid = $this->input->get('refid', 0, 'int');
 
-                if ($this->ref || $this->refid)
-                {
-                        // to make sure the item is checkedin on redirect
-                        $this->task = 'save';
-                }
+		// Check if there is a return value
+		$return = $this->input->get('return', null, 'base64');
+		$canReturn = (!is_null($return) && JUri::isInternal(base64_decode($return)));
+
+		if ($this->ref || $this->refid || $canReturn)
+		{
+			// to make sure the item is checkedin on redirect
+			$this->task = 'save';
+		}
 
 		$saved = parent::save($key, $urlVar);
 
-		if ($this->refid && $saved)
+		// This is not needed since parent save already does this
+		// Due to the ref and refid implementation we need to add this
+		if ($canReturn)
 		{
-			$redirect = '&view='.(string)$this->ref.'&layout=edit&id='.(int)$this->refid;
+			$redirect = base64_decode($return);
+
+			// Redirect to the return value.
+			$this->setRedirect(
+				JRoute::_(
+					$redirect, false
+				)
+			);
+		}
+		elseif ($this->refid && $this->ref)
+		{
+			$redirect = '&view=' . (string)$this->ref . '&layout=edit&id=' . (int)$this->refid;
 
 			// Redirect to the item screen.
 			$this->setRedirect(
@@ -286,9 +315,9 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 				)
 			);
 		}
-		elseif ($this->ref && $saved)
+		elseif ($this->ref)
 		{
-			$redirect = '&view='.(string)$this->ref;
+			$redirect = '&view=' . (string)$this->ref;
 
 			// Redirect to the list screen.
 			$this->setRedirect(
@@ -313,6 +342,40 @@ class ComponentbuilderControllerJoomla_component extends JControllerForm
 	 */
 	protected function postSaveHook(JModelLegacy $model, $validData = array())
 	{
+		// get the state object (Joomla\CMS\Object\CMSObject)
+		$state = $model->get('state');
+		// if we save2copy we need to also copy linked tables found!
+		if ($state->task === 'save2copy' && $state->{'joomla_component.new'})
+		{
+			// get new ID
+			$newID = $state->{'joomla_component.id'};
+			// get old ID
+			$oldID = $this->input->get('id', 0, 'INT');
+			// linked tables to update
+			$_tablesArray = array(
+				'component_admin_views' => 'joomla_component',
+				'component_site_views' => 'joomla_component',
+				'component_custom_admin_views' => 'joomla_component',
+				'component_updates' => 'joomla_component',
+				'component_mysql_tweaks' => 'joomla_component',
+				'component_custom_admin_menus' => 'joomla_component',
+				'component_config' => 'joomla_component',
+				'component_dashboard' => 'joomla_component',
+				'component_files_folders' => 'joomla_component',
+				'component_placeholders' => 'joomla_component',
+				'custom_code' => 'component'
+			);
+			foreach($_tablesArray as $_updateTable => $_key)
+			{
+				// get the linked ID
+				if ($_value = ComponentbuilderHelper::getVar($_updateTable, $oldID, $_key, 'id'))
+				{
+					// copy fields to new linked table
+					ComponentbuilderHelper::copyItem(/*id->*/ $_value, /*table->*/ $_updateTable, /*change->*/ array($_key => $newID));
+				}
+			}
+		}
+
 		return;
 	}
 

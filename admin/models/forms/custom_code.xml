@@ -19,7 +19,6 @@
 			label="COM_COMPONENTBUILDER_CUSTOM_CODE_CREATED_DATE_LABEL"
 			description="COM_COMPONENTBUILDER_CUSTOM_CODE_CREATED_DATE_DESC"
 			size="22"
-
 			format="%Y-%m-%d %H:%M:%S"
 			filter="user_utc"
 		/>
@@ -28,13 +27,11 @@
 			name="created_by"
 			type="user"
 			label="COM_COMPONENTBUILDER_CUSTOM_CODE_CREATED_BY_LABEL"
-
 			description="COM_COMPONENTBUILDER_CUSTOM_CODE_CREATED_BY_DESC"
 		/>
 		<!-- Published Field. Type: List (joomla) -->
 		<field name="published" type="list" label="JSTATUS"
 			description="JFIELD_PUBLISHED_DESC" class="chzn-color-state"
-
 			filter="intval" size="1" default="1" >
 			<option value="1">
 				JPUBLISHED</option>
@@ -63,7 +60,6 @@
 			label="JFIELD_ACCESS_LABEL"
 			description="JFIELD_ACCESS_DESC"
 			default="1"
-
 			required="false"
 		/>
 		<!-- Ordering Field. Type: Numbers (joomla) -->
@@ -75,7 +71,6 @@
 			description=""
 			default="0"
 			size="6"
-
 			required="false"
 		/>
 		<!-- Version Field. Type: Text (joomla) -->
@@ -95,7 +90,6 @@
 			type="component"
 			name="component"
 			label="COM_COMPONENTBUILDER_CUSTOM_CODE_COMPONENT_LABEL"
-			description="JFIELD_TITLE_DESC"
 			class="list_class"
 			multiple="false"
 			default="0"
@@ -113,7 +107,7 @@
 			class="text_area span12"
 			required="true"
 			filter="PATH"
-			message="Error! Please add target path."
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_PATH_MESSAGE"
 			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_PATH_HINT"
 		/>
 		<!-- Target Field. Type: Radio. (joomla) -->
@@ -159,18 +153,11 @@
 			<option value="2">
 				COM_COMPONENTBUILDER_CUSTOM_CODE_HTML</option>
 		</field>
-		<!-- System_name Field. Type: Text. (joomla) -->
+		<!-- Not_required Field. Type: Hidden. (joomla) -->
 		<field
-			type="text"
-			name="system_name"
-			label="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_LABEL"
-			size="10"
-			maxlength="50"
-			description="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_DESCRIPTION"
-			class="text_area"
-			filter="STRING"
-			message="Error! Please add some text here."
-			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_HINT"
+			type="hidden"
+			name="not_required"
+			default="一_一"
 		/>
 		<!-- Function_name Field. Type: Text. (joomla) -->
 		<field
@@ -182,20 +169,40 @@
 			class="input-large-text"
 			required="true"
 		/>
-		<!-- From_line Field. Type: Text. (joomla) -->
+		<!-- System_name Field. Type: Text. (joomla) -->
 		<field
 			type="text"
-			name="from_line"
-			label="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_LABEL"
+			name="system_name"
+			label="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_LABEL"
 			size="10"
 			maxlength="50"
-			description="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_DESCRIPTION"
+			default=""
+			description="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_DESCRIPTION"
 			class="text_area"
-			filter="FLOAT"
-			message="Error! Please add amount paid here."
-			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_HINT"
-			onchange="if(!jQuery(this).val().match(/^\d+$/)){jQuery(this).val('')};"
+			filter="STRING"
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_MESSAGE"
+			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_SYSTEM_NAME_HINT"
 		/>
+		<!-- Note_placeholders_explained Field. Type: Note. A None Database Field. (joomla) -->
+		<field type="note" name="note_placeholders_explained" label="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_PLACEHOLDERS_EXPLAINED_LABEL" description="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_PLACEHOLDERS_EXPLAINED_DESCRIPTION" heading="h4" class="note_placeholders_explained" />
+		<!-- Code Field. Type: Editor. (joomla) -->
+		<field
+			type="editor"
+			name="code"
+			label="COM_COMPONENTBUILDER_CUSTOM_CODE_CODE_LABEL"
+			description="COM_COMPONENTBUILDER_CUSTOM_CODE_CODE_DESCRIPTION"
+			width="100%"
+			height="450px"
+			cols="15"
+			rows="30"
+			buttons="no"
+			syntax="php"
+			editor="codemirror|none"
+			filter="raw"
+			validate="code"
+		/>
+		<!-- Note_jcb_placeholder Field. Type: Note. A None Database Field. (joomla) -->
+		<field type="note" name="note_jcb_placeholder" label="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_JCB_PLACEHOLDER_LABEL" description="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_JCB_PLACEHOLDER_DESCRIPTION" heading="h4" class="alert alert-info note_jcb_placeholder" />
 		<!-- Hashendtarget Field. Type: Text. (joomla) -->
 		<field
 			type="text"
@@ -203,31 +210,13 @@
 			label="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHENDTARGET_LABEL"
 			size="50"
 			maxlength="150"
+			default=""
 			description="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHENDTARGET_DESCRIPTION"
 			class="text_area"
 			readonly="true"
 			filter="STRING"
-			message="Error! Please add some text here."
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHENDTARGET_MESSAGE"
 			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHENDTARGET_HINT"
-		/>
-		<!-- Not_required Field. Type: Hidden. (joomla) -->
-		<field
-			type="hidden"
-			name="not_required"
-			default="[]"
-		/>
-		<!-- Code Field. Type: Textarea. (joomla) -->
-		<field
-			type="textarea"
-			name="code"
-			label="COM_COMPONENTBUILDER_CUSTOM_CODE_CODE_LABEL"
-			rows="30"
-			cols="15"
-			description="COM_COMPONENTBUILDER_CUSTOM_CODE_CODE_DESCRIPTION"
-			class="text_area span12"
-			filter="raw"
-			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_CODE_HINT"
-			required="true"
 		/>
 		<!-- To_line Field. Type: Text. (joomla) -->
 		<field
@@ -239,8 +228,22 @@
 			description="COM_COMPONENTBUILDER_CUSTOM_CODE_TO_LINE_DESCRIPTION"
 			class="text_area"
 			filter="FLOAT"
-			message="Error! Please add line number here."
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_TO_LINE_MESSAGE"
 			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_TO_LINE_HINT"
+			onchange="if(!jQuery(this).val().match(/^\d+$/)){jQuery(this).val('')};"
+		/>
+		<!-- From_line Field. Type: Text. (joomla) -->
+		<field
+			type="text"
+			name="from_line"
+			label="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_LABEL"
+			size="10"
+			maxlength="50"
+			description="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_DESCRIPTION"
+			class="text_area"
+			filter="FLOAT"
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_MESSAGE"
+			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_FROM_LINE_HINT"
 			onchange="if(!jQuery(this).val().match(/^\d+$/)){jQuery(this).val('')};"
 		/>
 		<!-- Hashtarget Field. Type: Text. (joomla) -->
@@ -250,17 +253,14 @@
 			label="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHTARGET_LABEL"
 			size="50"
 			maxlength="150"
+			default=""
 			description="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHTARGET_DESCRIPTION"
 			class="text_area"
 			readonly="true"
 			filter="STRING"
-			message="Error! Please add some text here."
+			message="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHTARGET_MESSAGE"
 			hint="COM_COMPONENTBUILDER_CUSTOM_CODE_HASHTARGET_HINT"
 		/>
-		<!-- Note_jcb_placeholder Field. Type: Note. A None Database Field. (joomla) -->
-		<field type="note" name="note_jcb_placeholder" label="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_JCB_PLACEHOLDER_LABEL" description="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_JCB_PLACEHOLDER_DESCRIPTION" heading="h4" class="span12 note_jcb_placeholder" />
-		<!-- Note_placeholders_explained Field. Type: Note. A None Database Field. (joomla) -->
-		<field type="note" name="note_placeholders_explained" label="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_PLACEHOLDERS_EXPLAINED_LABEL" description="COM_COMPONENTBUILDER_CUSTOM_CODE_NOTE_PLACEHOLDERS_EXPLAINED_DESCRIPTION" heading="h4" class="note_placeholders_explained" />
 	</fieldset>
 	
 	<!-- Access Control Fields. -->
